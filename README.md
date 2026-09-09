@@ -10,9 +10,9 @@ control-asistencia/
 ├── app.js          la pantalla y la conexión con Supabase
 ├── logica.js       fechas, reportes y archivos, sin navegador de por medio
 ├── logica.test.mjs pruebas de esa lógica (`node --test`)
-├── api/config.js   entrega las llaves desde las variables de Vercel
-├── config.local.js llaves para probar en tu computadora (no se sube a git)
-├── .env.ejemplo    los nombres de las variables que hay que crear en Vercel
+├── config.js       dirección, llave y nombre de la escuela — YA CONFIGURADO
+├── api/config.js   opcional: lee variables de entorno si decides usarlas
+├── .env.ejemplo    los nombres de esas variables, por si algún día las usas
 ├── manifest.json   para instalarla en el celular
 ├── logo.svg        escudo de la escuela
 ├── icono.svg       icono de la pantalla de inicio
@@ -68,45 +68,38 @@ Authentication → Users → Add user, con la casilla *Auto Confirm User* activa
 
 ## Dónde viven las llaves
 
-Las llaves ya no están escritas en el código. `index.html` las pide a
-`/api/config`, una función que las lee de las variables de entorno de Vercel.
+En `config.js`, junto a `index.html`. Ya está lleno con los datos de tu
+proyecto, así que no hay nada que configurar: subes la carpeta y funciona.
 
-En Vercel, entra a **Settings → Environment Variables** y crea estas cuatro
-(los nombres están también en `.env.ejemplo`):
+Ahí mismo están el nombre de la escuela (`ESCUELA_TIPO` y `ESCUELA`), el ciclo
+escolar y el logotipo. Son los valores que salen en el membrete y en las hojas
+impresas.
 
-| Variable | Qué va ahí |
-|---|---|
-| `SUPABASE_URL` | La dirección de tu proyecto de Supabase |
-| `SUPABASE_ANON_KEY` | La llave publishable |
-| `ESCUELA_TIPO` | La línea chica del membrete: `Escuela Secundaria General` |
-| `ESCUELA` | La línea grande: `Ignacio Manuel Altamirano` |
-| `CICLO` | El ciclo escolar. Déjala vacía y se calcula sola |
-| `LOGO` | Archivo del logotipo oficial. Vacía usa el escudo incluido |
+### Por qué la llave puede estar a la vista
 
-Después de crearlas hay que volver a desplegar para que tomen efecto.
+Se trata de datos de menores, así que conviene entenderlo bien.
 
-Para probar en tu computadora sin Vercel, el paquete trae `config.local.js` con
-los mismos valores. Ese archivo está en el `.gitignore` y no se sube.
+La llave *publishable* está hecha para ser pública. Cualquier página web tiene
+que enviarla para conectarse a Supabase, así que el navegador la recibe de
+todos modos y quien abra las herramientas de desarrollo la puede leer, esté
+guardada donde esté. Esconderla del repositorio es higiene, no seguridad.
 
-### Qué protege esto y qué no
+**Lo que sí protege a tus alumnos** son las políticas de seguridad por fila que
+ya están puestas en las tres tablas, limitadas al rol `authenticated`: alguien
+con la llave pero sin sesión no obtiene ni un renglón, y cada maestro solo
+alcanza sus propios grupos. La llave abre la puerta del edificio; las políticas
+son las cerraduras de cada salón.
 
-Conviene tenerlo claro, porque se trata de datos de menores.
+La llave `service_role` / `secret` es otra cosa: esa sí salta todas las
+protecciones y no debe aparecer en ningún archivo de este proyecto.
 
-**Lo que sí logra:** la llave sale del repositorio. Si el proyecto está en
-GitHub, quien lo vea no encuentra credenciales en el código, y puedes cambiar la
-llave sin tocar los archivos.
+### Si algún día quieres sacarla del repositorio
 
-**Lo que no logra:** esconderla del navegador. Cualquier página web tiene que
-enviar esa llave para conectarse a Supabase, así que quien abra las
-herramientas de desarrollo la va a ver. Eso pasa con todas las aplicaciones
-hechas así, no es una falla de esta.
-
-**Por eso la llave no es la protección.** La protección real son las políticas
-de seguridad por fila que ya están puestas en las tres tablas: están limitadas
-al rol `authenticated`, de modo que alguien con la llave pero sin sesión no
-obtiene ni un renglón, y un maestro con sesión solo alcanza sus propios grupos.
-Es exactamente al revés de como suena: la llave abre la puerta del edificio, las
-políticas son las cerraduras de cada salón.
+El proyecto ya viene preparado. Crea en Vercel las variables `SUPABASE_URL`,
+`SUPABASE_ANON_KEY`, `ESCUELA_TIPO`, `ESCUELA` (los nombres están en
+`.env.ejemplo`), vuelve a desplegar y `api/config.js` las entregará al
+navegador, mandando sobre lo que diga `config.js`. Mientras no existan, no
+estorban: el sistema funciona con el archivo.
 
 ### Para reforzar de verdad
 
@@ -114,12 +107,9 @@ políticas son las cerraduras de cada salón.
   quedó sin protección. Vale la pena correrlo cada que cambies algo.
 - En **Authentication → Policies** activa la protección contra contraseñas
   filtradas, para que nadie use una que ya se haya visto en alguna fuga.
-- Como la llave actual ya anduvo circulando en archivos y conversaciones,
-  cámbiala una vez que todo funcione: **Project Settings → API Keys**, creas una
-  nueva, actualizas la variable en Vercel y desactivas la anterior.
 - Descarga un respaldo de vez en cuando y guárdalo en un lugar seguro. No lo
-  dejes en la carpeta del proyecto: el `.gitignore` lo bloquea justo para que no
-  se suba con nombres de alumnos adentro.
+  dejes en la carpeta del proyecto: el `.gitignore` bloquea esos archivos justo
+  para que no se suban con nombres de alumnos adentro.
 
 ## Subir a GitHub
 
@@ -136,15 +126,9 @@ git remote add origin https://github.com/TU-USUARIO/TU-REPOSITORIO.git
 git push -u origin main
 ```
 
-El `.gitignore` deja fuera `config.local.js`, que es donde están tus llaves para
-pruebas locales. Verifica antes del primer envío que `git status` no lo liste.
-La llave `service_role` / `secret` no debe aparecer en ningún archivo de este
-proyecto, ni siquiera en las variables de entorno: esa salta todas las
-protecciones.
-
-Lo que el `.gitignore` sí bloquea son los respaldos que descargues desde la
-aplicación (`respaldo-asistencia-*.json`, `asistencia-*.csv`), porque llevan
-nombres de alumnos y no deben terminar en un repositorio público.
+El `.gitignore` deja fuera los respaldos que descargues desde la aplicación
+(`respaldo-asistencia-*.json`, `asistencia-*.csv`), porque llevan nombres de
+alumnos y no deben terminar en un repositorio público.
 
 ## Publicar en Vercel
 
@@ -251,7 +235,7 @@ guardó algo que no.
 - **"El registro está cerrado"**: falta activar *Allow new users to sign up*.
 - **"No se pudieron leer los datos"**: la sesión se venció. Sal y vuelve a
   entrar.
-- **"No llegó la configuración"**: faltan las variables de entorno en Vercel, o
-  las creaste pero no volviste a desplegar.
+- **"Falta la configuración"**: `config.js` no se subió o quedó en otra carpeta.
+  Tiene que estar junto a `index.html`.
 - Supabase pausa los proyectos gratuitos tras una semana sin uso. Si vuelves de
   vacaciones y no carga, se reactiva con un clic desde el panel.

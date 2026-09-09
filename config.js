@@ -1,16 +1,25 @@
-// Proyecto de Supabase: SECUNDARIA IMA
+// Configuración del sistema.
 //
-// La llave "publishable" es pública a propósito: no es un secreto.
-// Lo que protege tus datos es el inicio de sesión y las políticas de
-// seguridad por fila que ya están activas en las tres tablas.
-// Nunca pongas aquí la llave "service_role" / "secret".
+// La llave "publishable" es pública por diseño: el navegador la recibe de
+// todos modos, así que tenerla aquí no cambia nada en la práctica. Lo que
+// protege los datos de los alumnos son el inicio de sesión y las políticas
+// de seguridad por fila de la base.
+//
+// La llave "service_role" / "secret" NUNCA debe escribirse en este archivo.
+//
+// Si algún día prefieres sacarla del repositorio, crea en Vercel las
+// variables de entorno SUPABASE_URL y SUPABASE_ANON_KEY: si existen, mandan
+// sobre lo que diga este archivo.
 
 window.SUPABASE_URL = "https://ouodtwngbwaxrqgtcvnz.supabase.co";
 window.SUPABASE_ANON_KEY = "sb_publishable_fFsA1LTZ0lEYEOfBi-Sgaw_CeDbZhTm";
 
-// Nombre que aparece en el membrete, arriba de cada pantalla y en las
-// hojas impresas. Cámbialo por el nombre completo de tu escuela.
-window.ESCUELA = "Escuela Secundaria IMA";
-
-// Ciclo escolar. Si lo dejas vacío, se calcula solo: de agosto a julio.
+// Membrete
+window.ESCUELA_TIPO = "Escuela Secundaria General";
+window.ESCUELA = "Ignacio Manuel Altamirano";
 window.CICLO = "";
+
+// Logotipo oficial. Deja el valor vacío para usar el escudo de trazo que
+// viene incluido. Si tienes el logotipo de la escuela, guárdalo en esta
+// carpeta y escribe aquí su nombre, por ejemplo "logo-escuela.png".
+window.LOGO = "";
