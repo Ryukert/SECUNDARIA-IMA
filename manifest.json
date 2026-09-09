@@ -1,0 +1,20 @@
+{
+  "name": "Registro de asistencia",
+  "short_name": "Asistencia",
+  "description": "Control de asistencia escolar",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FCFCFA",
+  "theme_color": "#16305C",
+  "lang": "es-MX",
+  "icons": [
+    {
+      "src": "icono.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
