@@ -309,7 +309,11 @@
 <p class="entrada" id="cargando">Cargando…</p>
 <div class="aviso" id="aviso" role="status"></div>
 
-<script src="config.js"></script>
+<!-- Las llaves llegan de las variables de entorno de Vercel, no del repositorio. -->
+<script src="/api/config"></script>
+<!-- Solo para probar en tu computadora sin Vercel. Este archivo no se sube a git;
+     cuando la página corre publicada, el 404 de aquí es normal y no afecta nada. -->
+<script src="config.local.js"></script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -384,8 +388,9 @@ function pintarMembrete(){
 }
 
 async function iniciar(){
-  if(!window.SUPABASE_URL || window.SUPABASE_URL.includes('TU-PROYECTO')){
-    $('#cargando').innerHTML = 'Falta poner la dirección y la llave de tu proyecto en <b>config.js</b>.';
+  if(window.ERROR_CONFIG || !window.SUPABASE_URL){
+    $('#cargando').textContent = window.ERROR_CONFIG ||
+      'No llegó la configuración. Si estás probando en tu computadora, crea el archivo config.local.js; si ya está publicada, revisa las variables de entorno en Vercel.';
     return;
   }
   pintarMembrete();
