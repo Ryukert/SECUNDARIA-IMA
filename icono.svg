@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Registro de asistencia">
+  <rect width="512" height="512" fill="#16305C"/>
+  <rect x="88" y="96" width="336" height="320" fill="#FCFCFA"/>
+  <rect x="88" y="96" width="336" height="26" fill="#C0A24B"/>
+  <g fill="none" stroke="#B9C0C9" stroke-width="8">
+    <line x1="120" y1="192" x2="392" y2="192"/>
+    <line x1="120" y1="256" x2="392" y2="256"/>
+    <line x1="120" y1="320" x2="392" y2="320"/>
+    <line x1="120" y1="384" x2="392" y2="384"/>
+    <line x1="168" y1="160" x2="168" y2="400"/>
+  </g>
+  <g stroke="#1E6B45" stroke-width="20" stroke-linecap="square" fill="none">
+    <polyline points="196,178 214,196 250,152"/>
+    <polyline points="196,242 214,260 250,216"/>
+    <polyline points="196,370 214,388 250,344"/>
+  </g>
+  <g stroke="#B3261E" stroke-width="20" stroke-linecap="square">
+    <line x1="200" y1="288" x2="242" y2="330"/>
+    <line x1="242" y1="288" x2="200" y2="330"/>
+  </g>
+</svg>

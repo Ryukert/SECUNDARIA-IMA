@@ -7,7 +7,9 @@ publica en **Vercel**.
 ```
 control-asistencia/
 ├── index.html      la aplicación completa
-├── config.js       dirección y llave de Supabase — YA CONFIGURADO
+├── config.js       dirección, llave y nombre de la escuela
+├── manifest.json   para instalarla en el celular
+├── icono.svg       icono de la pantalla de inicio
 ├── esquema.sql     tablas y permisos — YA APLICADO
 ├── supabase/
 │   └── migrations/ la misma migración, con su número de versión
@@ -58,6 +60,20 @@ revisen su correo; si no, entra directo.
 "Crear una", igual que cualquier otro maestro. Si prefieres hacerlo a mano:
 Authentication → Users → Add user, con la casilla *Auto Confirm User* activada.
 
+## Poner el nombre de tu escuela
+
+Al final de `config.js` hay dos valores:
+
+```js
+window.ESCUELA = "Escuela Secundaria IMA";
+window.CICLO = "";
+```
+
+`ESCUELA` es lo que aparece en el membrete y en las hojas impresas: escríbelo
+completo, como lo usa la institución. `CICLO` puedes dejarlo vacío y se calcula
+solo, tomando agosto como inicio de ciclo; si tu calendario es distinto,
+escríbelo a mano, por ejemplo `"Ciclo escolar 2026-2027"`.
+
 ## Subir a GitHub
 
 Crea un repositorio vacío en [github.com/new](https://github.com/new), **sin**
@@ -99,6 +115,18 @@ esta carpeta, y luego `http://localhost:8000`. Abrir el archivo con doble clic
 no sirve, porque el navegador bloquea las conexiones desde `file://`.
 
 ---
+
+## Instalarla en el celular
+
+No hace falta bajarla de ninguna tienda. Una vez publicada en Vercel:
+
+- **Android (Chrome):** abre la dirección, toca los tres puntos y elige
+  *Agregar a la pantalla principal*.
+- **iPhone (Safari):** abre la dirección, toca el botón de compartir y elige
+  *Agregar a inicio*.
+
+Queda con su icono, abre a pantalla completa y guarda tu sesión, así que solo
+tienes que escribir la contraseña la primera vez.
 
 ## Cómo se usa
 
