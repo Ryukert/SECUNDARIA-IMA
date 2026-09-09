@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista de asistencia</title>
+<style>
+  :root{
+    --papel:#FBFAF7; --regla:#DFE3DD; --regla-fuerte:#C3CAC1;
+    --tinta:#1C2521; --tinta-suave:#5E6A62; --sel:#EDF1EC;
+    --verde:#2E7D4F; --rojo:#C2402D; --ambar:#B87A05; --azul:#3E6595;
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--papel); color:var(--tinta); font-family:var(--sans);
+       font-size:16px; line-height:1.5; -webkit-text-size-adjust:100%}
+  .hoja{max-width:760px; margin:0 auto; padding:20px 18px 80px}
+  [hidden]{display:none !important}
+
+  /* entrada */
+  .entrada{max-width:360px; margin:12vh auto; padding:0 18px}
+  .entrada h1{font-family:var(--serif); font-size:28px; margin:0 0 6px}
+  .entrada p.sub{color:var(--tinta-suave); margin:0 0 24px}
+  .entrada label{display:block; font-size:14px; color:var(--tinta-suave); margin:14px 0 5px}
+  .entrada input{width:100%}
+  .error{color:var(--rojo); font-size:14.5px; margin:14px 0 0}
+
+  header.tapa{border-bottom:2px solid var(--tinta); padding-bottom:14px}
+  .titulo{font-family:var(--serif); font-size:15px; margin:0 0 10px; color:var(--tinta-suave);
+          display:flex; justify-content:space-between; gap:12px; align-items:baseline}
+  .grupo-fila{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  select.grupo{font-family:var(--serif); font-size:26px; line-height:1.2; font-weight:600;
+    border:0; background:transparent; color:var(--tinta); padding:2px 4px 2px 0; max-width:100%; cursor:pointer}
+  select.grupo:focus-visible{outline:2px solid var(--azul); outline-offset:2px}
+
+  nav.pestanas{display:flex; gap:2px; margin:16px 0 22px; border-bottom:1px solid var(--regla); flex-wrap:wrap}
+  nav.pestanas button{font:inherit; font-size:15px; background:none; border:0; border-bottom:2px solid transparent;
+    padding:9px 14px; margin-bottom:-1px; color:var(--tinta-suave); cursor:pointer}
+  nav.pestanas button[aria-selected="true"]{color:var(--tinta); border-bottom-color:var(--tinta); font-weight:600}
+  nav.pestanas button:focus-visible{outline:2px solid var(--azul); outline-offset:-2px}
+
+  .fecha-barra{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:4px}
+  .fecha-larga{font-family:var(--serif); font-size:24px; font-weight:600; margin:0}
+  .flechas{display:flex; gap:4px}
+  .flechas button, .btn{font:inherit; cursor:pointer; background:transparent; color:var(--tinta);
+    border:1px solid var(--regla-fuerte); border-radius:3px; padding:5px 10px; font-size:14px}
+  .flechas button{padding:4px 9px; line-height:1}
+  .btn:hover, .flechas button:hover{background:var(--sel)}
+  .btn:focus-visible, .flechas button:focus-visible{outline:2px solid var(--azul); outline-offset:1px}
+  .btn:disabled{opacity:.5; cursor:default}
+  .btn.primario{background:var(--tinta); color:var(--papel); border-color:var(--tinta)}
+  .btn.primario:hover{background:#2f3b35}
+  .btn.peligro{color:var(--rojo); border-color:#E4C4BD}
+  .btn.enlace{border:0; padding:4px 6px; color:var(--tinta-suave); text-decoration:underline}
+  input[type=date], input[type=text], input[type=email], input[type=password], textarea{
+    font:inherit; color:var(--tinta); background:#fff; border:1px solid var(--regla-fuerte);
+    border-radius:3px; padding:7px 9px}
+  input:focus-visible, textarea:focus-visible{outline:2px solid var(--azul); outline-offset:0}
+
+  .avance{margin:14px 0 18px; font-size:14px; color:var(--tinta-suave)}
+  .avance .riel{height:3px; background:var(--regla); margin-top:6px; position:relative}
+  .avance .riel span{position:absolute; inset:0 auto 0 0; background:var(--tinta); transition:width .18s ease}
+
+  ol.lista{list-style:none; margin:0; padding:0; border-top:1px solid var(--regla-fuerte)}
+  ol.lista li{display:flex; align-items:center; gap:10px; padding:7px 0 7px 2px; border-bottom:1px solid var(--regla)}
+  .num{width:26px; flex:none; font-variant-numeric:tabular-nums; font-size:13px; color:var(--tinta-suave); text-align:right}
+  .nombre{flex:1; min-width:0; font-size:16px; overflow-wrap:anywhere}
+  .marcas{display:flex; gap:4px; flex:none}
+  .marcas button{width:38px; height:38px; border-radius:3px; border:1px solid var(--regla-fuerte);
+    background:#fff; font:inherit; font-size:15px; font-weight:600; color:var(--tinta-suave);
+    cursor:pointer; display:grid; place-items:center}
+  .marcas button:hover{border-color:var(--tinta-suave)}
+  .marcas button:focus-visible{outline:2px solid var(--azul); outline-offset:1px}
+  .marcas button[aria-pressed="true"]{color:#fff; border-color:transparent}
+  .marcas button[aria-pressed="true"][data-e="A"]{background:var(--verde)}
+  .marcas button[aria-pressed="true"][data-e="F"]{background:var(--rojo)}
+  .marcas button[aria-pressed="true"][data-e="R"]{background:var(--ambar)}
+  .marcas button[aria-pressed="true"][data-e="J"]{background:var(--azul)}
+  li:not(.sin-marcar) .nombre{color:var(--tinta-suave)}
+
+  .leyenda{margin-top:14px; font-size:13.5px; color:var(--tinta-suave); display:flex; gap:16px; flex-wrap:wrap}
+  .leyenda b{font-weight:600; color:var(--tinta)}
+  .acciones{display:flex; gap:8px; flex-wrap:wrap; margin-top:18px}
+
+  ul.alumnos{list-style:none; margin:0 0 18px; padding:0; border-top:1px solid var(--regla-fuerte)}
+  ul.alumnos li{display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--regla)}
+  textarea{width:100%; min-height:110px; resize:vertical; font-size:15px}
+  label.campo{display:block; font-size:14px; color:var(--tinta-suave); margin:0 0 6px}
+
+  table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+  th, td{text-align:right; padding:8px 6px; border-bottom:1px solid var(--regla); font-size:14.5px}
+  th:first-child, td:first-child{text-align:left; font-variant-numeric:normal}
+  thead th{border-bottom:1px solid var(--regla-fuerte); font-weight:600; font-size:13px; color:var(--tinta-suave)}
+  td.pct{font-weight:600}
+  .baja{color:var(--rojo)}
+
+  .vacio{padding:36px 0; color:var(--tinta-suave); max-width:46ch}
+  .vacio p{margin:0 0 14px}
+  h2.sec{font-family:var(--serif); font-size:19px; margin:26px 0 10px}
+  .nota{font-size:14px; color:var(--tinta-suave); max-width:62ch}
+  .aviso{position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:var(--tinta);
+    color:var(--papel); padding:8px 16px; border-radius:3px; font-size:14px; opacity:0;
+    pointer-events:none; transition:opacity .25s; max-width:90vw; text-align:center}
+  .aviso.ver{opacity:1}
+  .aviso.mal{background:var(--rojo)}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+  @media (max-width:430px){
+    ol.lista li{flex-wrap:wrap}
+    .nombre{flex-basis:calc(100% - 40px)}
+    .marcas{width:100%; padding-left:36px; margin-top:2px}
+    .marcas button{flex:1; width:auto}
+    .fecha-larga{font-size:21px}
+  }
+</style>
+
+<!-- pantalla de acceso -->
+<section class="entrada" id="entrada" hidden>
+  <h1>Lista de asistencia</h1>
+  <p class="sub">Entra con el correo que registraste en Supabase.</p>
+  <label for="correo">Correo</label>
+  <input type="email" id="correo" autocomplete="username" inputmode="email">
+  <label for="pass">Contraseña</label>
+  <input type="password" id="pass" autocomplete="current-password">
+  <p class="error" id="errorEntrada" hidden></p>
+  <div class="acciones">
+    <button class="btn primario" id="btnEntrar">Entrar</button>
+  </div>
+</section>
+
+<!-- aplicación -->
+<div class="hoja" id="app" hidden>
+  <header class="tapa">
+    <p class="titulo"><span>Lista de asistencia</span>
+      <span><span id="quien"></span> <button class="btn enlace" id="btnSalir">Salir</button></span></p>
+    <div class="grupo-fila">
+      <select class="grupo" id="selGrupo" aria-label="Grupo"></select>
+      <button class="btn" id="btnNuevoGrupo">Nuevo grupo</button>
+      <button class="btn" id="btnRenombrar">Cambiar nombre</button>
+      <button class="btn peligro" id="btnBorrarGrupo">Borrar grupo</button>
+    </div>
+  </header>
+
+  <nav class="pestanas" role="tablist">
+    <button role="tab" data-v="lista" aria-selected="true">Pasar lista</button>
+    <button role="tab" data-v="alumnos" aria-selected="false">Alumnos</button>
+    <button role="tab" data-v="reporte" aria-selected="false">Reporte</button>
+    <button role="tab" data-v="datos" aria-selected="false">Descargar</button>
+  </nav>
+
+  <main id="vista"></main>
+</div>
+
+<p class="entrada" id="cargando">Cargando…</p>
+<div class="aviso" id="aviso" role="status"></div>
+
+<script src="config.js"></script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const sb = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+const ESTADOS = [
+  {e:'A', etq:'✓', nom:'Asistencia'},
+  {e:'F', etq:'F', nom:'Falta'},
+  {e:'R', etq:'R', nom:'Retardo'},
+  {e:'J', etq:'J', nom:'Justificada'},
+];
+const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+let grupos = [];        // [{id, nombre, alumnos:[{id,nombre,orden}], registros:{fecha:{alumnoId:estado}}}]
+let activo = null;
+let vista = 'lista';
+let fecha = hoy();
+
+const $ = s => document.querySelector(s);
+
+function hoy(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fechaLarga(iso){
+  const [a,m,d] = iso.split('-').map(Number);
+  return `${DIAS[new Date(a,m-1,d).getDay()]} ${d} de ${MESES[m-1]}`;
+}
+function mueveDia(iso,n){
+  const [a,m,d] = iso.split('-').map(Number);
+  const f = new Date(a,m-1,d+n);
+  return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-${String(f.getDate()).padStart(2,'0')}`;
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function grupo(){ return grupos.find(g => g.id === activo) || null; }
+
+function avisar(txt, mal){
+  const a = $('#aviso');
+  a.textContent = txt;
+  a.classList.toggle('mal', !!mal);
+  a.classList.add('ver');
+  clearTimeout(a._t); a._t = setTimeout(()=>a.classList.remove('ver'), mal ? 4000 : 1400);
+}
+// Envuelve cada escritura: si Supabase falla, el maestro se entera y se recarga
+// el estado real para que la pantalla nunca mienta sobre lo que quedó guardado.
+async function escribir(fn, ok){
+  try{
+    const r = await fn();
+    if(r && r.error) throw r.error;
+    if(ok) avisar(ok);
+    return true;
+  }catch(err){
+    console.error(err);
+    avisar('No se guardó: ' + (err.message || 'revisa tu conexión'), true);
+    await cargarTodo(); pintar();
+    return false;
+  }
+}
+
+/* ---------------- sesión ---------------- */
+async function iniciar(){
+  if(!window.SUPABASE_URL || window.SUPABASE_URL.includes('TU-PROYECTO')){
+    $('#cargando').innerHTML = 'Falta poner la dirección y la llave de tu proyecto en <b>config.js</b>.';
+    return;
+  }
+  const { data } = await sb.auth.getSession();
+  $('#cargando').hidden = true;
+  if(data.session) await abrirApp(data.session);
+  else $('#entrada').hidden = false;
+}
+async function abrirApp(sesion){
+  $('#entrada').hidden = true;
+  $('#app').hidden = false;
+  $('#quien').textContent = sesion.user.email;
+  await cargarTodo();
+  pintar();
+}
+$('#btnEntrar').onclick = entrar;
+$('#pass').onkeydown = e => { if(e.key === 'Enter') entrar(); };
+async function entrar(){
+  const err = $('#errorEntrada');
+  err.hidden = true;
+  $('#btnEntrar').disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: $('#correo').value.trim(), password: $('#pass').value
+  });
+  $('#btnEntrar').disabled = false;
+  if(error){
+    err.textContent = 'No pudimos entrar: ' + error.message;
+    err.hidden = false;
+    return;
+  }
+  $('#pass').value = '';
+  await abrirApp(data.session);
+}
+$('#btnSalir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+/* ---------------- lectura ---------------- */
+async function cargarTodo(){
+  const [g, a, s] = await Promise.all([
+    sb.from('grupos').select('*').order('creado_at'),
+    sb.from('alumnos').select('*').order('orden'),
+    sb.from('asistencias').select('*'),
+  ]);
+  if(g.error || a.error || s.error){
+    avisar('No se pudieron leer los datos. ¿Ya corriste el archivo esquema.sql?', true);
+    return;
+  }
+  grupos = g.data.map(x => ({id:x.id, nombre:x.nombre, alumnos:[], registros:{}}));
+  const porId = Object.fromEntries(grupos.map(x => [x.id, x]));
+  a.data.forEach(al => porId[al.grupo_id] && porId[al.grupo_id].alumnos.push({id:al.id, nombre:al.nombre, orden:al.orden}));
+  s.data.forEach(r => {
+    const gr = porId[r.grupo_id]; if(!gr) return;
+    (gr.registros[r.fecha] = gr.registros[r.fecha] || {})[r.alumno_id] = r.estado;
+  });
+  if(!grupos.find(x => x.id === activo)) activo = grupos[0] ? grupos[0].id : null;
+}
+
+/* ---------------- encabezado ---------------- */
+function pintarGrupos(){
+  const sel = $('#selGrupo');
+  if(!grupos.length){
+    sel.innerHTML = '<option>Sin grupos todavía</option>'; sel.disabled = true;
+  }else{
+    sel.disabled = false;
+    sel.innerHTML = grupos.map(g =>
+      `<option value="${g.id}"${g.id===activo?' selected':''}>${esc(g.nombre)}</option>`).join('');
+  }
+}
+$('#selGrupo').onchange = e => { activo = e.target.value; pintar(); };
+
+$('#btnNuevoGrupo').onclick = async () => {
+  const n = prompt('Nombre del grupo (por ejemplo: 3° B — Matemáticas)');
+  if(!n || !n.trim()) return;
+  const { data, error } = await sb.from('grupos').insert({nombre:n.trim()}).select().single();
+  if(error) return avisar('No se creó el grupo: ' + error.message, true);
+  grupos.push({id:data.id, nombre:data.nombre, alumnos:[], registros:{}});
+  activo = data.id; vista = 'alumnos'; pintar(); avisar('Grupo creado');
+};
+$('#btnRenombrar').onclick = async () => {
+  const g = grupo(); if(!g) return;
+  const n = prompt('Nuevo nombre del grupo', g.nombre);
+  if(!n || !n.trim()) return;
+  const previo = g.nombre; g.nombre = n.trim(); pintar();
+  if(!await escribir(() => sb.from('grupos').update({nombre:g.nombre}).eq('id',g.id), 'Nombre cambiado')) g.nombre = previo;
+};
+$('#btnBorrarGrupo').onclick = async () => {
+  const g = grupo(); if(!g) return;
+  if(!confirm(`Se borrará "${g.nombre}" con sus alumnos y todas sus listas. Esta acción no se puede deshacer.`)) return;
+  if(await escribir(() => sb.from('grupos').delete().eq('id',g.id), 'Grupo borrado')){
+    grupos = grupos.filter(x => x.id !== g.id);
+    activo = grupos[0] ? grupos[0].id : null;
+    pintar();
+  }
+};
+document.querySelectorAll('nav.pestanas button').forEach(b => b.onclick = () => { vista = b.dataset.v; pintar(); });
+
+/* ---------------- render ---------------- */
+function pintar(){
+  pintarGrupos();
+  document.querySelectorAll('nav.pestanas button').forEach(b =>
+    b.setAttribute('aria-selected', String(b.dataset.v === vista)));
+  const cont = $('#vista');
+  if(vista === 'datos') return pintarDatos(cont);
+  const g = grupo();
+  if(!g){
+    cont.innerHTML = `<div class="vacio">
+      <p>Aquí no hay nada todavía. Crea tu primer grupo para empezar a pasar lista.</p>
+      <button class="btn primario" onclick="document.getElementById('btnNuevoGrupo').click()">Crear un grupo</button></div>`;
+    return;
+  }
+  if(vista === 'lista') pintarLista(cont, g);
+  if(vista === 'alumnos') pintarAlumnos(cont, g);
+  if(vista === 'reporte') pintarReporte(cont, g);
+}
+
+/* ---------------- pasar lista ---------------- */
+function pintarLista(cont, g){
+  if(!g.alumnos.length){
+    cont.innerHTML = `<div class="vacio">
+      <p>El grupo ${esc(g.nombre)} aún no tiene alumnos. Agrégalos y podrás pasar lista en segundos.</p>
+      <button class="btn primario" id="irAlumnos">Agregar alumnos</button></div>`;
+    $('#irAlumnos').onclick = () => { vista='alumnos'; pintar(); };
+    return;
+  }
+  const dia = g.registros[fecha] || {};
+  const marcados = g.alumnos.filter(a => dia[a.id]).length;
+  const pct = Math.round(marcados / g.alumnos.length * 100);
+
+  cont.innerHTML = `
+    <div class="fecha-barra">
+      <h1 class="fecha-larga">${fechaLarga(fecha)}</h1>
+      <div class="flechas">
+        <button id="ant" aria-label="Día anterior">←</button>
+        <button id="sig" aria-label="Día siguiente">→</button>
+      </div>
+      <input type="date" id="inpFecha" value="${fecha}" aria-label="Elegir fecha">
+      ${fecha !== hoy() ? '<button class="btn" id="irHoy">Ir a hoy</button>' : ''}
+    </div>
+    <div class="avance">${marcados} de ${g.alumnos.length} alumnos marcados
+      <div class="riel"><span style="width:${pct}%"></span></div></div>
+    <ol class="lista">
+      ${g.alumnos.map((a,i) => `
+        <li class="${dia[a.id]?'':'sin-marcar'}">
+          <span class="num">${i+1}</span>
+          <span class="nombre">${esc(a.nombre)}</span>
+          <span class="marcas">
+            ${ESTADOS.map(s => `<button data-a="${a.id}" data-e="${s.e}" aria-pressed="${dia[a.id]===s.e}"
+              title="${s.nom}" aria-label="${s.nom} para ${esc(a.nombre)}">${s.etq}</button>`).join('')}
+          </span>
+        </li>`).join('')}
+    </ol>
+    <p class="leyenda"><span><b>✓</b> asistencia</span><span><b>F</b> falta</span>
+      <span><b>R</b> retardo</span><span><b>J</b> falta justificada</span></p>
+    <div class="acciones">
+      <button class="btn primario" id="todosPresentes">Marcar todos con asistencia</button>
+      <button class="btn" id="faltanLosDemas">Los que faltan por marcar: falta</button>
+      <button class="btn peligro" id="limpiarDia">Borrar las marcas del día</button>
+    </div>`;
+
+  $('#ant').onclick = () => { fecha = mueveDia(fecha,-1); pintar(); };
+  $('#sig').onclick = () => { fecha = mueveDia(fecha, 1); pintar(); };
+  $('#inpFecha').onchange = e => { if(e.target.value){ fecha = e.target.value; pintar(); } };
+  const bh = $('#irHoy'); if(bh) bh.onclick = () => { fecha = hoy(); pintar(); };
+
+  cont.querySelectorAll('.marcas button').forEach(b => b.onclick = async () => {
+    const alumnoId = b.dataset.a, estado = b.dataset.e;
+    const d = g.registros[fecha] = g.registros[fecha] || {};
+    if(d[alumnoId] === estado){
+      delete d[alumnoId]; pintar();
+      await escribir(() => sb.from('asistencias').delete().eq('alumno_id',alumnoId).eq('fecha',fecha));
+    }else{
+      d[alumnoId] = estado; pintar();
+      await escribir(() => sb.from('asistencias')
+        .upsert({grupo_id:g.id, alumno_id:alumnoId, fecha, estado}, {onConflict:'alumno_id,fecha'}));
+    }
+  });
+  $('#todosPresentes').onclick = () => marcarVarios(g, () => 'A');
+  $('#faltanLosDemas').onclick = () => marcarVarios(g, a => (g.registros[fecha]||{})[a.id] || 'F');
+  $('#limpiarDia').onclick = async () => {
+    if(!confirm('Se borrarán todas las marcas de este día.')) return;
+    delete g.registros[fecha]; pintar();
+    await escribir(() => sb.from('asistencias').delete().eq('grupo_id',g.id).eq('fecha',fecha), 'Día limpio');
+  };
+}
+async function marcarVarios(g, quePonerle){
+  const filas = g.alumnos.map(a => ({grupo_id:g.id, alumno_id:a.id, fecha, estado:quePonerle(a)}));
+  g.registros[fecha] = Object.fromEntries(filas.map(f => [f.alumno_id, f.estado]));
+  pintar();
+  await escribir(() => sb.from('asistencias').upsert(filas, {onConflict:'alumno_id,fecha'}), 'Listo');
+}
+
+/* ---------------- alumnos ---------------- */
+function pintarAlumnos(cont, g){
+  cont.innerHTML = `
+    <h2 class="sec">${g.alumnos.length} alumno${g.alumnos.length===1?'':'s'} en ${esc(g.nombre)}</h2>
+    <ul class="alumnos">
+      ${g.alumnos.map((a,i) => `<li>
+        <span class="num">${i+1}</span><span class="nombre">${esc(a.nombre)}</span>
+        <button class="btn enlace" data-ed="${a.id}">Editar</button>
+        <button class="btn enlace" data-del="${a.id}">Quitar</button></li>`).join('')
+        || '<li><span class="nombre" style="color:var(--tinta-suave)">Todavía no hay nadie en la lista.</span></li>'}
+    </ul>
+    <label class="campo" for="nuevos">Escribe un nombre por renglón. Puedes pegar la lista completa de una vez.</label>
+    <textarea id="nuevos" placeholder="Aguilar Ramírez, Sofía&#10;Bautista Cruz, Diego&#10;Castañeda Ortiz, Ximena"></textarea>
+    <div class="acciones">
+      <button class="btn primario" id="agregar">Agregar a la lista</button>
+      <button class="btn" id="ordenar">Ordenar por apellido</button>
+    </div>`;
+
+  cont.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const a = g.alumnos.find(x => x.id === b.dataset.del);
+    if(!confirm(`¿Quitar a ${a.nombre}? También se borran sus marcas de asistencia.`)) return;
+    if(await escribir(() => sb.from('alumnos').delete().eq('id',a.id), 'Alumno quitado')){
+      g.alumnos = g.alumnos.filter(x => x.id !== a.id);
+      Object.values(g.registros).forEach(d => delete d[a.id]);
+      pintar();
+    }
+  });
+  cont.querySelectorAll('[data-ed]').forEach(b => b.onclick = async () => {
+    const a = g.alumnos.find(x => x.id === b.dataset.ed);
+    const n = prompt('Nombre del alumno', a.nombre);
+    if(!n || !n.trim()) return;
+    const previo = a.nombre; a.nombre = n.trim(); pintar();
+    if(!await escribir(() => sb.from('alumnos').update({nombre:a.nombre}).eq('id',a.id), 'Nombre corregido')) a.nombre = previo;
+  });
+  $('#agregar').onclick = async () => {
+    const nombres = $('#nuevos').value.split('\n').map(s => s.trim()).filter(Boolean);
+    if(!nombres.length) return;
+    let orden = g.alumnos.reduce((m,a) => Math.max(m, a.orden), 0);
+    const filas = nombres.map(n => ({grupo_id:g.id, nombre:n, orden:++orden}));
+    const { data, error } = await sb.from('alumnos').insert(filas).select();
+    if(error) return avisar('No se agregaron: ' + error.message, true);
+    data.forEach(d => g.alumnos.push({id:d.id, nombre:d.nombre, orden:d.orden}));
+    g.alumnos.sort((a,b) => a.orden - b.orden);
+    pintar(); avisar(`${data.length} alumno${data.length===1?'':'s'} en la lista`);
+  };
+  $('#ordenar').onclick = async () => {
+    g.alumnos.sort((a,b) => a.nombre.localeCompare(b.nombre,'es'));
+    g.alumnos.forEach((a,i) => a.orden = i+1);
+    pintar();
+    await escribir(() => sb.from('alumnos')
+      .upsert(g.alumnos.map(a => ({id:a.id, grupo_id:g.id, nombre:a.nombre, orden:a.orden}))), 'Lista ordenada');
+  };
+}
+
+/* ---------------- reporte ---------------- */
+function resumen(g){
+  const dias = Object.keys(g.registros).sort();
+  return g.alumnos.map(a => {
+    let A=0,F=0,R=0,J=0,reg=0;
+    dias.forEach(d => {
+      const e = g.registros[d][a.id]; if(!e) return;
+      reg++;
+      if(e==='A')A++; else if(e==='F')F++; else if(e==='R')R++; else J++;
+    });
+    return {a,A,F,R,J,reg,pct: reg ? Math.round((A+R)/reg*100) : null};
+  });
+}
+function pintarReporte(cont, g){
+  const dias = Object.keys(g.registros).sort();
+  if(!dias.length || !g.alumnos.length){
+    cont.innerHTML = `<div class="vacio"><p>El reporte se llena solo conforme pases lista. Marca la asistencia de un día y vuelve aquí.</p></div>`;
+    return;
+  }
+  const filas = resumen(g);
+  const conDatos = filas.filter(f => f.pct !== null);
+  const prom = conDatos.length ? Math.round(conDatos.reduce((s,f)=>s+f.pct,0)/conDatos.length) : null;
+  cont.innerHTML = `
+    <h2 class="sec">${dias.length} día${dias.length===1?'':'s'} registrados · asistencia promedio ${prom===null?'—':prom+'%'}</h2>
+    <table>
+      <thead><tr><th>Alumno</th><th>✓</th><th>R</th><th>F</th><th>J</th><th>Asistencia</th></tr></thead>
+      <tbody>${filas.map(f => `<tr><td>${esc(f.a.nombre)}</td><td>${f.A}</td><td>${f.R}</td><td>${f.F}</td><td>${f.J}</td>
+        <td class="pct ${f.pct!==null && f.pct<80?'baja':''}">${f.pct===null?'—':f.pct+'%'}</td></tr>`).join('')}</tbody>
+    </table>
+    <p class="leyenda">La asistencia cuenta ✓ y R sobre los días en que el alumno tuvo marca. Las justificadas se muestran aparte. En rojo, quienes van por debajo del 80%.</p>
+    <div class="acciones"><button class="btn primario" id="csv">Descargar este grupo (CSV)</button></div>`;
+
+  $('#csv').onclick = () => {
+    const lineas = [['Alumno', ...dias, 'Asistencias','Retardos','Faltas','Justificadas','% asistencia']];
+    filas.forEach(f => lineas.push([f.a.nombre, ...dias.map(d => g.registros[d][f.a.id] || ''),
+      f.A, f.R, f.F, f.J, f.pct===null?'':f.pct+'%']));
+    bajar(aCsv(lineas), `asistencia-${limpio(g.nombre)}.csv`, 'text/csv');
+  };
+}
+
+/* ---------------- descargar ---------------- */
+function pintarDatos(cont){
+  cont.innerHTML = `
+    <h2 class="sec">Descarga tu información cuando quieras</h2>
+    <p class="nota">Todo vive en tu base de datos de Supabase. Estas descargas son copias que se generan en el momento, con lo que hay guardado ahora mismo.</p>
+    <div class="acciones">
+      <button class="btn primario" id="todoCsv">Todos los grupos (CSV)</button>
+      <button class="btn" id="todoJson">Respaldo completo (JSON)</button>
+    </div>
+    <h2 class="sec">Restaurar desde un respaldo</h2>
+    <p class="nota">Sube un archivo JSON descargado antes. Los grupos se agregan como nuevos; nada de lo que ya tienes se borra ni se reemplaza.</p>
+    <div class="acciones">
+      <input type="file" id="archivo" accept="application/json,.json">
+      <button class="btn" id="restaurar">Restaurar</button>
+    </div>`;
+
+  $('#todoCsv').onclick = () => {
+    const lineas = [['Grupo','Alumno','Fecha','Estado','Significado']];
+    const nombre = {A:'Asistencia', F:'Falta', R:'Retardo', J:'Justificada'};
+    grupos.forEach(g => {
+      const porAlumno = Object.fromEntries(g.alumnos.map(a => [a.id, a.nombre]));
+      Object.keys(g.registros).sort().forEach(f => {
+        Object.entries(g.registros[f]).forEach(([alumnoId, e]) => {
+          if(porAlumno[alumnoId]) lineas.push([g.nombre, porAlumno[alumnoId], f, e, nombre[e]]);
+        });
+      });
+    });
+    if(lineas.length === 1) return avisar('Todavía no hay asistencias registradas.', true);
+    bajar(aCsv(lineas), `asistencia-completa-${hoy()}.csv`, 'text/csv');
+  };
+  $('#todoJson').onclick = () => {
+    const copia = {version:1, exportado:new Date().toISOString(), grupos};
+    bajar(JSON.stringify(copia, null, 2), `respaldo-asistencia-${hoy()}.json`, 'application/json');
+  };
+  $('#restaurar').onclick = async () => {
+    const f = $('#archivo').files[0];
+    if(!f) return avisar('Primero elige un archivo.', true);
+    let copia;
+    try{ copia = JSON.parse(await f.text()); }
+    catch{ return avisar('Ese archivo no es un respaldo válido.', true); }
+    if(!copia.grupos || !Array.isArray(copia.grupos)) return avisar('Ese archivo no es un respaldo válido.', true);
+    if(!confirm(`Se agregarán ${copia.grupos.length} grupo(s) del respaldo. ¿Continuar?`)) return;
+    try{
+      for(const g of copia.grupos){
+        const ng = (await sb.from('grupos').insert({nombre: g.nombre + ' (restaurado)'}).select().single()).data;
+        const alumnos = (g.alumnos || []).map((a,i) => ({grupo_id:ng.id, nombre:a.nombre, orden:a.orden ?? i+1}));
+        if(!alumnos.length) continue;
+        const nuevos = (await sb.from('alumnos').insert(alumnos).select()).data;
+        const mapa = {};
+        (g.alumnos || []).forEach((a,i) => { if(nuevos[i]) mapa[a.id] = nuevos[i].id; });
+        const marcas = [];
+        Object.entries(g.registros || {}).forEach(([fch, d]) =>
+          Object.entries(d).forEach(([viejo, e]) => {
+            if(mapa[viejo]) marcas.push({grupo_id:ng.id, alumno_id:mapa[viejo], fecha:fch, estado:e});
+          }));
+        for(let i = 0; i < marcas.length; i += 500){
+          await sb.from('asistencias').insert(marcas.slice(i, i+500));
+        }
+      }
+      await cargarTodo(); pintar(); avisar('Respaldo restaurado');
+    }catch(err){
+      console.error(err); avisar('Falló la restauración: ' + (err.message || ''), true);
+    }
+  };
+}
+
+/* ---------------- utilidades de archivo ---------------- */
+function aCsv(lineas){
+  return '\uFEFF' + lineas.map(l => l.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+function limpio(s){ return s.replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/g,'').trim().replace(/\s+/g,'-'); }
+function bajar(texto, nombre, tipo){
+  const url = URL.createObjectURL(new Blob([texto], {type: tipo + ';charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+iniciar();
+</script>
+</html>
