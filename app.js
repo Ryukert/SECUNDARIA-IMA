@@ -180,9 +180,9 @@ function pintarMembrete() {
 async function iniciar() {
   pintarMembrete();
 
-  if (window.ERROR_CONFIG || !window.SUPABASE_URL) {
-    $('#cargando').textContent = window.ERROR_CONFIG ||
-      'No llegó la configuración. Si estás probando en tu computadora, crea config.local.js; si ya está publicada, revisa las variables de entorno en Vercel.';
+  if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
+    $('#cargando').textContent =
+      'Falta la configuración: revisa que config.js esté junto a index.html y que tenga la dirección y la llave de Supabase.';
     return;
   }
 

@@ -1,5 +1,6 @@
-// Entrega la configuración del navegador desde las variables de entorno de
-// Vercel, para que las llaves no vivan dentro del repositorio.
+// Opcional. Si en Vercel existen las variables de entorno, este archivo las
+// entrega al navegador y sustituye lo que diga config.js. Si no existen, no
+// hace nada y el sistema funciona igual con config.js.
 //
 // Ojo con lo que esto sí y lo que esto no hace: la llave sale del código
 // publicado en GitHub, pero el navegador la sigue recibiendo, porque toda
@@ -14,20 +15,18 @@ module.exports = (req, res) => {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
 
+  // Sin variables de entorno no pasa nada: se queda lo que traiga config.js.
   if (!url || !llave) {
-    return res.status(200).send(
-      'window.ERROR_CONFIG = "Faltan las variables SUPABASE_URL y ' +
-      'SUPABASE_ANON_KEY en Vercel (Settings > Environment Variables).";'
-    );
+    return res.status(200).send('/* sin variables de entorno: manda config.js */');
   }
 
   const texto = JSON.stringify;
   res.status(200).send(
     `window.SUPABASE_URL = ${texto(url)};\n` +
     `window.SUPABASE_ANON_KEY = ${texto(llave)};\n` +
-    `window.ESCUELA_TIPO = ${texto(process.env.ESCUELA_TIPO || '')};\n` +
-    `window.ESCUELA = ${texto(process.env.ESCUELA || 'Escuela Secundaria')};\n` +
-    `window.CICLO = ${texto(process.env.CICLO || '')};\n` +
-    `window.LOGO = ${texto(process.env.LOGO || '')};\n`
+    (process.env.ESCUELA_TIPO ? `window.ESCUELA_TIPO = ${texto(process.env.ESCUELA_TIPO)};\n` : '') +
+    (process.env.ESCUELA ? `window.ESCUELA = ${texto(process.env.ESCUELA)};\n` : '') +
+    (process.env.CICLO ? `window.CICLO = ${texto(process.env.CICLO)};\n` : '') +
+    (process.env.LOGO ? `window.LOGO = ${texto(process.env.LOGO)};\n` : '')
   );
 };

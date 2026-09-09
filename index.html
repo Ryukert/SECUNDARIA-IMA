@@ -376,10 +376,11 @@
   </form>
 </dialog>
 
-<!-- Las llaves llegan de las variables de entorno de Vercel, no del repositorio. -->
+<!-- Configuración del sistema. -->
+<script src="config.js"></script>
+<!-- Opcional: si en Vercel existen variables de entorno, mandan sobre config.js.
+     Si no existen, esta llamada no hace nada. Al abrir el archivo directamente
+     desde tu computadora dará 404, lo cual es normal y no afecta. -->
 <script src="/api/config"></script>
-<!-- Solo para probar en tu computadora sin Vercel. Este archivo no se sube a git;
-     cuando la página corre publicada, el 404 de aquí es normal y no afecta nada. -->
-<script src="config.local.js"></script>
 <script type="module" src="app.js"></script>
 </html>
