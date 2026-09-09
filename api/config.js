@@ -25,7 +25,9 @@ module.exports = (req, res) => {
   res.status(200).send(
     `window.SUPABASE_URL = ${texto(url)};\n` +
     `window.SUPABASE_ANON_KEY = ${texto(llave)};\n` +
+    `window.ESCUELA_TIPO = ${texto(process.env.ESCUELA_TIPO || '')};\n` +
     `window.ESCUELA = ${texto(process.env.ESCUELA || 'Escuela Secundaria')};\n` +
-    `window.CICLO = ${texto(process.env.CICLO || '')};\n`
+    `window.CICLO = ${texto(process.env.CICLO || '')};\n` +
+    `window.LOGO = ${texto(process.env.LOGO || '')};\n`
   );
 };

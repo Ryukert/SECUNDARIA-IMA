@@ -6,11 +6,15 @@ publica en **Vercel**.
 
 ```
 control-asistencia/
-├── index.html      la aplicación completa
+├── index.html      la estructura y los estilos
+├── app.js          la pantalla y la conexión con Supabase
+├── logica.js       fechas, reportes y archivos, sin navegador de por medio
+├── logica.test.mjs pruebas de esa lógica (`node --test`)
 ├── api/config.js   entrega las llaves desde las variables de Vercel
 ├── config.local.js llaves para probar en tu computadora (no se sube a git)
 ├── .env.ejemplo    los nombres de las variables que hay que crear en Vercel
 ├── manifest.json   para instalarla en el celular
+├── logo.svg        escudo de la escuela
 ├── icono.svg       icono de la pantalla de inicio
 ├── esquema.sql     tablas y permisos — YA APLICADO
 ├── supabase/
@@ -74,8 +78,10 @@ En Vercel, entra a **Settings → Environment Variables** y crea estas cuatro
 |---|---|
 | `SUPABASE_URL` | La dirección de tu proyecto de Supabase |
 | `SUPABASE_ANON_KEY` | La llave publishable |
-| `ESCUELA` | El nombre completo de la escuela, como sale en el membrete |
+| `ESCUELA_TIPO` | La línea chica del membrete: `Escuela Secundaria General` |
+| `ESCUELA` | La línea grande: `Ignacio Manuel Altamirano` |
 | `CICLO` | El ciclo escolar. Déjala vacía y se calcula sola |
+| `LOGO` | Archivo del logotipo oficial. Vacía usa el escudo incluido |
 
 Después de crearlas hay que volver a desplegar para que tomen efecto.
 
@@ -158,6 +164,23 @@ no sirve, porque el navegador bloquea las conexiones desde `file://`.
 
 ---
 
+## El escudo de la escuela
+
+El proyecto trae un escudo diseñado para esta escuela: un blasón con filete
+dorado, una estrella y un libro abierto, por el maestro y escritor que le da
+nombre. Aparece en el membrete de las dos pantallas, en las hojas impresas y
+como icono cuando la instalas en el celular.
+
+Está dibujado en trazo y hereda el color de donde esté: sale en blanco sobre la
+banda azul y en negro cuando se imprime, sin necesidad de dos archivos.
+
+**Para poner el logotipo oficial en su lugar:** guarda la imagen en la carpeta
+del proyecto (PNG con fondo transparente o SVG funcionan bien) y escribe su
+nombre en la variable `LOGO`, por ejemplo `logo-escuela.png`. En cuanto tenga
+valor, sustituye al escudo de trazo en todas las pantallas. Ten en cuenta que un
+logotipo a color impreso en blanco y negro suele verse apagado; si eso pasa,
+conviene dejar el escudo de trazo para las hojas que se entregan.
+
 ## Instalarla en el celular
 
 No hace falta bajarla de ninguna tienda. Una vez publicada en Vercel:
@@ -169,6 +192,33 @@ No hace falta bajarla de ninguna tienda. Una vez publicada en Vercel:
 
 Queda con su icono, abre a pantalla completa y guarda tu sesión, así que solo
 tienes que escribir la contraseña la primera vez.
+
+## Cómo está armado el código
+
+`logica.js` no toca el navegador ni la red: solo transforma datos (fechas,
+conteos del reporte, armado de los CSV). Por eso se puede probar sola, y esas
+pruebas están en `logica.test.mjs`. Si tienes Node instalado:
+
+```bash
+node --test
+```
+
+`app.js` se encarga de la pantalla y de hablar con Supabase. Tres decisiones que
+vale la pena conocer si algún día lo modificas:
+
+**Las marcas se guardan en una cola.** Al tocar un botón, la pantalla cambia de
+inmediato y la escritura entra en una fila que se vacía en orden. Si se cae la
+señal —cosa normal en un salón— la cola espera y reintenta sola, con esperas
+cada vez más largas, y en el membrete aparece cuántas marcas van pendientes. Si
+el servidor rechaza algo, eso sí se avisa y se vuelve a leer el estado real.
+
+**Solo se redibuja el renglón que cambió.** Antes se rearmaba la lista completa
+en cada toque; en un grupo de 45 alumnos se sentía lento y perdías el lugar
+donde ibas leyendo.
+
+**Los diálogos son de la página, no del navegador.** `prompt()` y `confirm()` se
+ven mal en el celular y algunos navegadores los bloquean cuando la aplicación
+está instalada en la pantalla de inicio.
 
 ## Cómo se usa
 

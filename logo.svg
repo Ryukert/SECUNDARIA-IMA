@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" role="img" aria-label="Escudo de la escuela">
+  <path d="M32 3 L59 13 V37 C59 54 45.5 64.5 32 69.5 C18.5 64.5 5 54 5 37 V13 Z"
+        fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M32 9 L53.5 17 V37 C53.5 51 42.4 60 32 64.4 C21.6 60 10.5 51 10.5 37 V17 Z"
+        fill="none" class="oro" stroke="#C0A24B" stroke-width="1.4" stroke-linejoin="round"/>
+  <polygon class="oro" fill="#C0A24B"
+           points="32,16 33.65,20.73 38.66,20.84 34.66,23.87 36.11,28.66 32,25.8 27.89,28.66 29.34,23.87 25.34,20.84 30.35,20.73"/>
+  <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M32 42 C28 39 22 38 16 39 V52 C22 51 28 52 32 55 Z"/>
+    <path d="M32 42 C36 39 42 38 48 39 V52 C42 51 36 52 32 55 Z"/>
+    <path d="M32 42 V55"/>
+  </g>
+</svg>
