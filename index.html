@@ -24,6 +24,9 @@
   .entrada label{display:block; font-size:14px; color:var(--tinta-suave); margin:14px 0 5px}
   .entrada input{width:100%}
   .error{color:var(--rojo); font-size:14.5px; margin:14px 0 0}
+  .ok{color:var(--verde); font-size:14.5px; margin:14px 0 0}
+  .cambiar{margin:18px 0 0; font-size:14.5px}
+  .cambiar button{padding:0; font-size:inherit}
 
   header.tapa{border-bottom:2px solid var(--tinta); padding-bottom:14px}
   .titulo{font-family:var(--serif); font-size:15px; margin:0 0 10px; color:var(--tinta-suave);
@@ -116,15 +119,34 @@
 <!-- pantalla de acceso -->
 <section class="entrada" id="entrada" hidden>
   <h1>Lista de asistencia</h1>
-  <p class="sub">Entra con el correo que registraste en Supabase.</p>
+  <p class="sub" id="subEntrada">Entra con tu correo y contraseña.</p>
+
+  <div id="campoNombre" hidden>
+    <label for="nombreMaestro">Tu nombre</label>
+    <input type="text" id="nombreMaestro" autocomplete="name" placeholder="Profa. María Hernández">
+  </div>
+
   <label for="correo">Correo</label>
   <input type="email" id="correo" autocomplete="username" inputmode="email">
+
   <label for="pass">Contraseña</label>
   <input type="password" id="pass" autocomplete="current-password">
-  <p class="error" id="errorEntrada" hidden></p>
-  <div class="acciones">
-    <button class="btn primario" id="btnEntrar">Entrar</button>
+
+  <div id="campoPass2" hidden>
+    <label for="pass2">Repite la contraseña</label>
+    <input type="password" id="pass2" autocomplete="new-password">
   </div>
+
+  <p class="error" id="errorEntrada" hidden></p>
+  <p class="ok" id="okEntrada" hidden></p>
+
+  <div class="acciones">
+    <button class="btn primario" id="btnPrincipal">Entrar</button>
+  </div>
+  <p class="cambiar">
+    <span id="textoCambiar">¿Todavía no tienes cuenta?</span>
+    <button class="btn enlace" id="btnCambiarModo">Crear una</button>
+  </p>
 </section>
 
 <!-- aplicación -->
@@ -223,32 +245,110 @@ async function iniciar(){
   const { data } = await sb.auth.getSession();
   $('#cargando').hidden = true;
   if(data.session) await abrirApp(data.session);
-  else $('#entrada').hidden = false;
+  else { pintarEntrada(); $('#entrada').hidden = false; }
 }
 async function abrirApp(sesion){
   $('#entrada').hidden = true;
   $('#app').hidden = false;
-  $('#quien').textContent = sesion.user.email;
+  $('#quien').textContent = (sesion.user.user_metadata && sesion.user.user_metadata.nombre) || sesion.user.email;
   await cargarTodo();
   pintar();
 }
-$('#btnEntrar').onclick = entrar;
-$('#pass').onkeydown = e => { if(e.key === 'Enter') entrar(); };
-async function entrar(){
+let modo = 'entrar';   // 'entrar' o 'registro'
+
+// Los mensajes de Supabase llegan en inglés; los que salen a diario
+// se traducen para que el maestro entienda qué corregir.
+const TRADUCCIONES = [
+  [/invalid login credentials/i, 'El correo o la contraseña no coinciden.'],
+  [/email not confirmed/i, 'Falta confirmar tu correo. Busca el mensaje que te enviamos.'],
+  [/user already registered|already been registered/i, 'Ese correo ya tiene cuenta. Entra con tu contraseña.'],
+  [/password should be at least (\d+)/i, 'La contraseña necesita al menos 6 caracteres.'],
+  [/signups? not allowed|signup is disabled/i, 'El registro está cerrado en este momento.'],
+  [/unable to validate email|invalid email/i, 'Ese correo no parece válido.'],
+  [/for security purposes|rate limit|too many requests/i, 'Demasiados intentos seguidos. Espera un minuto.'],
+];
+function traducir(msg){
+  for(const [re, texto] of TRADUCCIONES) if(re.test(msg)) return texto;
+  return msg;
+}
+
+function pintarEntrada(){
+  const reg = modo === 'registro';
+  $('#subEntrada').textContent = reg
+    ? 'Crea tu cuenta. Solo tú verás los grupos que registres.'
+    : 'Entra con tu correo y contraseña.';
+  $('#campoNombre').hidden = !reg;
+  $('#campoPass2').hidden = !reg;
+  $('#btnPrincipal').textContent = reg ? 'Crear mi cuenta' : 'Entrar';
+  $('#pass').autocomplete = reg ? 'new-password' : 'current-password';
+  $('#textoCambiar').textContent = reg ? '¿Ya tienes cuenta?' : '¿Todavía no tienes cuenta?';
+  $('#btnCambiarModo').textContent = reg ? 'Entrar' : 'Crear una';
+  $('#errorEntrada').hidden = true;
+  $('#okEntrada').hidden = true;
+}
+$('#btnCambiarModo').onclick = () => {
+  modo = modo === 'registro' ? 'entrar' : 'registro';
+  pintarEntrada();
+};
+$('#btnPrincipal').onclick = enviar;
+['#correo','#pass','#pass2','#nombreMaestro'].forEach(s =>
+  $(s).onkeydown = e => { if(e.key === 'Enter') enviar(); });
+
+function fallo(texto){
   const err = $('#errorEntrada');
-  err.hidden = true;
-  $('#btnEntrar').disabled = true;
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: $('#correo').value.trim(), password: $('#pass').value
-  });
-  $('#btnEntrar').disabled = false;
-  if(error){
-    err.textContent = 'No pudimos entrar: ' + error.message;
-    err.hidden = false;
+  err.textContent = texto; err.hidden = false;
+  $('#okEntrada').hidden = true;
+  $('#btnPrincipal').disabled = false;
+}
+
+async function enviar(){
+  $('#errorEntrada').hidden = true;
+  $('#okEntrada').hidden = true;
+  $('#btnPrincipal').disabled = true;
+
+  const correo = $('#correo').value.trim();
+  const pass = $('#pass').value;
+  if(!correo || !pass) return fallo('Escribe tu correo y tu contraseña.');
+
+  if(modo === 'registro'){
+    const nombre = $('#nombreMaestro').value.trim();
+    if(!nombre) return fallo('Escribe tu nombre.');
+    if(pass.length < 6) return fallo('La contraseña necesita al menos 6 caracteres.');
+    if(pass !== $('#pass2').value) return fallo('Las dos contraseñas no son iguales.');
+
+    const { data, error } = await sb.auth.signUp({
+      email: correo, password: pass, options: { data: { nombre } }
+    });
+    $('#btnPrincipal').disabled = false;
+    if(error) return fallo(traducir(error.message));
+
+    if(data.session){          // el proyecto no pide confirmación: entra directo
+      limpiarCampos();
+      return abrirApp(data.session);
+    }
+    // el proyecto sí pide confirmación por correo
+    const ok = $('#okEntrada');
+    ok.textContent = `Cuenta creada. Te mandamos un correo a ${correo}: ábrelo, confirma tu cuenta y regresa aquí para entrar.`;
+    ok.hidden = false;
+    modo = 'entrar';
+    $('#subEntrada').textContent = 'Entra con tu correo y contraseña.';
+    $('#campoNombre').hidden = true;
+    $('#campoPass2').hidden = true;
+    $('#btnPrincipal').textContent = 'Entrar';
+    $('#textoCambiar').textContent = '¿Todavía no tienes cuenta?';
+    $('#btnCambiarModo').textContent = 'Crear una';
+    $('#pass').value = ''; $('#pass2').value = '';
     return;
   }
-  $('#pass').value = '';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: pass });
+  $('#btnPrincipal').disabled = false;
+  if(error) return fallo(traducir(error.message));
+  limpiarCampos();
   await abrirApp(data.session);
+}
+function limpiarCampos(){
+  $('#pass').value = ''; $('#pass2').value = ''; $('#nombreMaestro').value = '';
 }
 $('#btnSalir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
