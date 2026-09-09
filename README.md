@@ -24,19 +24,39 @@ control-asistencia/
 - La seguridad por fila está encendida en las tres, con políticas limitadas al
   rol `authenticated`: quien abra la página sin iniciar sesión no obtiene ni un
   renglón, y cada maestro solo alcanza sus propios datos.
-- `config.js` ya trae la dirección del proyecto y la llave pública. No hay que
+- La página tiene pantalla de entrada y de registro, con los mensajes de error\n  traducidos al español.\n- `config.js` ya trae la dirección del proyecto y la llave pública. No hay que
   editarlo.
 
-## Lo que falta hacer (2 minutos, en el panel de Supabase)
+## Lo que falta hacer (en el panel de Supabase)
 
-**1. Crear tu usuario.** Authentication → Users → Add user → Create new user.
-Pon tu correo y una contraseña, y **activa la casilla Auto Confirm User**. Sin
-esa casilla, Supabase espera una confirmación por correo y no vas a poder
-entrar. Esa contraseña es con la que iniciarás sesión en tu página.
+La página ya tiene pantalla de **registro**: cualquier maestro puede crear su
+cuenta desde ahí, y gracias a la seguridad por fila cada quien ve únicamente sus
+propios grupos. Para que funcione hay que abrir el registro y decidir si quieres
+confirmación por correo.
 
-**2. Cerrar el registro público.** Authentication → Sign In / Providers →
-desactiva *Allow new users to sign up*. Así nadie más puede crearse una cuenta
-dentro de tu proyecto.
+**1. Permitir el registro.** Authentication → Sign In / Providers → Email, y
+activa *Allow new users to sign up*. Si lo dejas apagado, la pantalla de
+registro responde "El registro está cerrado en este momento".
+
+**2. Decidir lo de la confirmación por correo.** En esa misma pantalla está
+*Confirm email*.
+
+- **Apagado**: el maestro se registra y entra de inmediato. Es lo más cómodo, y
+  razonable si solo se van a registrar compañeros a los que tú les pasas la
+  dirección. La desventaja es que nadie comprueba que el correo sea real.
+- **Encendido**: Supabase manda un correo de confirmación. Es más seguro, pero
+  el servicio de correo que Supabase incluye gratis está pensado solo para
+  pruebas y permite muy pocos envíos por hora. Si van a registrarse varios
+  maestros el mismo día, configura tu propio SMTP en Authentication → Emails
+  (funciona con Gmail, Resend, Brevo y otros) o los correos simplemente no
+  llegan.
+
+La aplicación se adapta sola a las dos opciones: si hay confirmación, avisa que
+revisen su correo; si no, entra directo.
+
+**3. Tu propia cuenta.** Puedes crearla desde la misma página con el botón
+"Crear una", igual que cualquier otro maestro. Si prefieres hacerlo a mano:
+Authentication → Users → Add user, con la casilla *Auto Confirm User* activada.
 
 ## Subir a GitHub
 
@@ -103,9 +123,12 @@ guardó algo que no.
 
 ## Si algo no funciona
 
-- **"No pudimos entrar"** al iniciar sesión: casi siempre es el usuario sin
-  confirmar. Revisa en Authentication → Users que tu correo no aparezca como
-  *Waiting for verification*.
+- **"El correo o la contraseña no coinciden"**: revisa mayúsculas y espacios.
+  Si nunca creaste la cuenta, usa el botón "Crear una".
+- **"Falta confirmar tu correo"**: busca el mensaje de Supabase, incluso en la
+  bandeja de correo no deseado. Si no llega, es el límite de envíos del correo
+  gratuito: apaga *Confirm email* o configura tu propio SMTP.
+- **"El registro está cerrado"**: falta activar *Allow new users to sign up*.
 - **"No se pudieron leer los datos"**: la sesión se venció. Sal y vuelve a
   entrar.
 - **La página no carga nada**: revisa que `config.js` esté junto a `index.html`
