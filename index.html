@@ -33,7 +33,12 @@
   .membrete{background:var(--marino); border-bottom:3px solid var(--oro); color:#fff}
   .membrete .interior{max-width:820px; margin:0 auto; padding:20px; display:flex;
     justify-content:space-between; align-items:flex-end; gap:18px; flex-wrap:wrap}
-  .escuela{font-family:var(--serif); font-weight:700; font-size:23px; line-height:1.25; margin:0}
+  .identidad{display:flex; align-items:flex-start; gap:15px; max-width:62ch}
+  .emblema{flex:none; width:56px; color:#fff; display:block}
+  .emblema svg{width:100%; height:auto; display:block}
+  .emblema img{width:100%; height:auto; display:block}
+  .tipo{margin:0 0 1px; font-size:12.5px; color:#AFC0DA; letter-spacing:.03em}
+  .escuela{font-family:var(--serif); font-weight:700; font-size:22px; line-height:1.22; margin:0}
   .dependencia{margin:5px 0 0; font-size:14px; color:#AFC0DA}
   .membrete-usuario{margin:0; font-size:14px; color:#C9D6E9; display:flex; align-items:center; gap:12px}
 
@@ -138,6 +143,22 @@
   .vacio{padding:40px 0; color:var(--tinta-suave); max-width:52ch}
   .vacio p{margin:0 0 16px}
   .nota{font-size:14px; color:var(--tinta-suave); max-width:66ch}
+  /* diálogos propios, en vez de prompt() y confirm() */
+  dialog{border:0; border-top:4px solid var(--marino); border-radius:2px; padding:0;
+    max-width:min(420px, calc(100vw - 32px)); width:100%; color:var(--tinta);
+    box-shadow:0 10px 40px rgba(11,33,67,.22)}
+  dialog::backdrop{background:rgba(14,33,67,.45)}
+  .dialogo-cuerpo{padding:22px}
+  .dialogo-cuerpo h2{font-family:var(--serif); font-size:18px; margin:0 0 8px; line-height:1.35}
+  .dialogo-cuerpo p{margin:0 0 4px; font-size:15px; color:var(--tinta-suave)}
+  .dialogo-cuerpo label{display:block; font-size:13.5px; color:var(--tinta-suave); margin:14px 0 5px}
+  .dialogo-cuerpo input{width:100%}
+  .dialogo-acciones{display:flex; flex-direction:row-reverse; gap:9px; margin-top:20px}
+  .dialogo-acciones .btn{min-height:42px; padding:6px 16px}
+  .pendientes{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35);
+    padding:3px 9px; border-radius:2px; font-size:12.5px; white-space:nowrap}
+  .aviso-dia{margin:8px 0 0; color:var(--ambar)}
+
   .aviso{position:fixed; left:50%; transform:translateX(-50%); bottom:20px; background:var(--marino);
     color:#fff; padding:10px 18px; border-radius:2px; font-size:14px; opacity:0;
     pointer-events:none; transition:opacity .25s; max-width:90vw; text-align:center}
@@ -151,9 +172,14 @@
     body{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
     .membrete .interior{padding:14px 16px calc(14px);
       padding-left:calc(16px + env(safe-area-inset-left)); padding-right:calc(16px + env(safe-area-inset-right))}
-    .escuela{font-size:18px}
-    .dependencia{font-size:13px}
-    .membrete-usuario{font-size:13px; gap:8px}
+    .identidad{gap:11px}
+    .emblema{width:42px}
+    .tipo{font-size:11.5px}
+    .escuela{font-size:17px}
+    .dependencia{font-size:12.5px}
+    .membrete-usuario{font-size:13px; gap:8px; flex-wrap:wrap}
+    .dialogo-cuerpo{padding:18px}
+    .dialogo-acciones .btn{flex:1; min-height:46px}
     .hoja{padding:0 16px 24px;
       padding-left:calc(16px + env(safe-area-inset-left)); padding-right:calc(16px + env(safe-area-inset-right))}
     .expediente{margin-top:16px; padding:13px 15px 15px}
@@ -209,9 +235,12 @@
     .hoja{padding:0; max-width:100%}
     .membrete{background:#fff; color:#000; border-bottom:2px solid #000}
     .membrete .interior{padding:0 0 8px}
-    .dependencia, .membrete-usuario{color:#000}
+    .dependencia, .tipo, .membrete-usuario{color:#000}
+    .emblema{color:#000; width:48px}
+    .emblema .oro{stroke:#000; fill:#000}
     .expediente{border:0; border-top:0; padding:10px 0 0; margin:0}
     select.grupo{color:#000; appearance:none}
+    dialog, .pendientes, .aviso-dia,
     nav.pestanas, .acciones, .flechas, .avance .riel, input[type=date],
     .btn, .cambiar, .aviso, textarea, label.campo{display:none !important}
     ol.lista li{break-inside:avoid; padding:3px 0}
@@ -228,9 +257,21 @@
 <section id="acceso" hidden>
   <header class="membrete">
     <div class="interior">
-      <div>
-        <p class="escuela" id="escuelaAcceso">Escuela Secundaria</p>
-        <p class="dependencia">Registro de asistencia</p>
+      <div class="identidad">
+        <span class="emblema" id="emblemaAcceso" aria-hidden="true"><svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 3 L59 13 V37 C59 54 45.5 64.5 32 69.5 C18.5 64.5 5 54 5 37 V13 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M32 9 L53.5 17 V37 C53.5 51 42.4 60 32 64.4 C21.6 60 10.5 51 10.5 37 V17 Z" fill="none" stroke="#C0A24B" stroke-width="1.4" stroke-linejoin="round" class="oro"/>
+          <polygon class="oro" fill="#C0A24B" points="32,16 33.65,20.73 38.66,20.84 34.66,23.87 36.11,28.66 32,25.8 27.89,28.66 29.34,23.87 25.34,20.84 30.35,20.73"/>
+          <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M32 42 C28 39 22 38 16 39 V52 C22 51 28 52 32 55 Z"/>
+            <path d="M32 42 C36 39 42 38 48 39 V52 C42 51 36 52 32 55 Z"/>
+            <path d="M32 42 V55"/>
+          </g></svg></span>
+        <div>
+          <p class="tipo" id="tipoAcceso"></p>
+          <p class="escuela" id="escuelaAcceso"></p>
+          <p class="dependencia">Registro de asistencia</p>
+        </div>
       </div>
     </div>
   </header>
@@ -271,11 +312,24 @@
 <div id="app" hidden>
   <header class="membrete">
     <div class="interior">
-      <div>
-        <p class="escuela" id="escuela">Escuela Secundaria</p>
-        <p class="dependencia">Registro de asistencia</p>
+      <div class="identidad">
+        <span class="emblema" id="emblemaApp" aria-hidden="true"><svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 3 L59 13 V37 C59 54 45.5 64.5 32 69.5 C18.5 64.5 5 54 5 37 V13 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M32 9 L53.5 17 V37 C53.5 51 42.4 60 32 64.4 C21.6 60 10.5 51 10.5 37 V17 Z" fill="none" stroke="#C0A24B" stroke-width="1.4" stroke-linejoin="round" class="oro"/>
+          <polygon class="oro" fill="#C0A24B" points="32,16 33.65,20.73 38.66,20.84 34.66,23.87 36.11,28.66 32,25.8 27.89,28.66 29.34,23.87 25.34,20.84 30.35,20.73"/>
+          <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M32 42 C28 39 22 38 16 39 V52 C22 51 28 52 32 55 Z"/>
+            <path d="M32 42 C36 39 42 38 48 39 V52 C42 51 36 52 32 55 Z"/>
+            <path d="M32 42 V55"/>
+          </g></svg></span>
+        <div>
+          <p class="tipo" id="tipo"></p>
+          <p class="escuela" id="escuela"></p>
+          <p class="dependencia">Registro de asistencia</p>
+        </div>
       </div>
       <p class="membrete-usuario">
+        <span class="pendientes" id="pendientes" role="status" hidden></span>
         <span id="quien"></span>
         <button class="btn claro" id="btnSalir">Cerrar sesión</button>
       </p>
@@ -309,539 +363,23 @@
 <p class="entrada" id="cargando">Cargando…</p>
 <div class="aviso" id="aviso" role="status"></div>
 
+<dialog id="dialogo">
+  <form method="dialog" class="dialogo-cuerpo">
+    <h2 id="dlgTitulo"></h2>
+    <p id="dlgTexto" hidden></p>
+    <label id="dlgEtiqueta" for="dlgCampo" hidden></label>
+    <input type="text" id="dlgCampo" hidden>
+    <div class="dialogo-acciones">
+      <button class="btn primario" value="aceptar" id="dlgAceptar">Aceptar</button>
+      <button class="btn" value="cancelar" id="dlgCancelar">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Las llaves llegan de las variables de entorno de Vercel, no del repositorio. -->
 <script src="/api/config"></script>
 <!-- Solo para probar en tu computadora sin Vercel. Este archivo no se sube a git;
      cuando la página corre publicada, el 404 de aquí es normal y no afecta nada. -->
 <script src="config.local.js"></script>
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const sb = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-
-const ESTADOS = [
-  {e:'A', etq:'✓', nom:'Asistencia'},
-  {e:'F', etq:'F', nom:'Falta'},
-  {e:'R', etq:'R', nom:'Retardo'},
-  {e:'J', etq:'J', nom:'Justificada'},
-];
-const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-
-let grupos = [];        // [{id, nombre, alumnos:[{id,nombre,orden}], registros:{fecha:{alumnoId:estado}}}]
-let activo = null;
-let vista = 'lista';
-let fecha = hoy();
-
-const $ = s => document.querySelector(s);
-
-function hoy(){
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function fechaLarga(iso){
-  const [a,m,d] = iso.split('-').map(Number);
-  return `${DIAS[new Date(a,m-1,d).getDay()]} ${d} de ${MESES[m-1]}`;
-}
-function mueveDia(iso,n){
-  const [a,m,d] = iso.split('-').map(Number);
-  const f = new Date(a,m-1,d+n);
-  return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-${String(f.getDate()).padStart(2,'0')}`;
-}
-function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function grupo(){ return grupos.find(g => g.id === activo) || null; }
-
-function avisar(txt, mal){
-  const a = $('#aviso');
-  a.textContent = txt;
-  a.classList.toggle('mal', !!mal);
-  a.classList.add('ver');
-  clearTimeout(a._t); a._t = setTimeout(()=>a.classList.remove('ver'), mal ? 4000 : 1400);
-}
-// Envuelve cada escritura: si Supabase falla, el maestro se entera y se recarga
-// el estado real para que la pantalla nunca mienta sobre lo que quedó guardado.
-async function escribir(fn, ok){
-  try{
-    const r = await fn();
-    if(r && r.error) throw r.error;
-    if(ok) avisar(ok);
-    return true;
-  }catch(err){
-    console.error(err);
-    avisar('No se guardó: ' + (err.message || 'revisa tu conexión'), true);
-    await cargarTodo(); pintar();
-    return false;
-  }
-}
-
-/* ---------------- sesión ---------------- */
-function cicloEscolar(){
-  const d = new Date(), a = d.getFullYear();
-  // el ciclo arranca en agosto: antes de esa fecha seguimos en el ciclo anterior
-  return d.getMonth() >= 7 ? `Ciclo escolar ${a}\u2013${a+1}` : `Ciclo escolar ${a-1}\u2013${a}`;
-}
-function pintarMembrete(){
-  const nombre = window.ESCUELA || 'Escuela Secundaria';
-  $('#escuela').textContent = nombre;
-  $('#escuelaAcceso').textContent = nombre;
-  $('#ciclo').textContent = window.CICLO || cicloEscolar();
-}
-
-async function iniciar(){
-  if(window.ERROR_CONFIG || !window.SUPABASE_URL){
-    $('#cargando').textContent = window.ERROR_CONFIG ||
-      'No llegó la configuración. Si estás probando en tu computadora, crea el archivo config.local.js; si ya está publicada, revisa las variables de entorno en Vercel.';
-    return;
-  }
-  pintarMembrete();
-  const { data } = await sb.auth.getSession();
-  $('#cargando').hidden = true;
-  if(data.session) await abrirApp(data.session);
-  else { pintarEntrada(); $('#acceso').hidden = false; }
-}
-async function abrirApp(sesion){
-  $('#acceso').hidden = true;
-  $('#app').hidden = false;
-  $('#quien').textContent = (sesion.user.user_metadata && sesion.user.user_metadata.nombre) || sesion.user.email;
-  await cargarTodo();
-  pintar();
-}
-let modo = 'entrar';   // 'entrar' o 'registro'
-
-// Los mensajes de Supabase llegan en inglés; los que salen a diario
-// se traducen para que el maestro entienda qué corregir.
-const TRADUCCIONES = [
-  [/invalid login credentials/i, 'El correo o la contraseña no coinciden.'],
-  [/email not confirmed/i, 'Falta confirmar tu correo. Busca el mensaje que te enviamos.'],
-  [/user already registered|already been registered/i, 'Ese correo ya tiene cuenta. Entra con tu contraseña.'],
-  [/password should be at least (\d+)/i, 'La contraseña necesita al menos 6 caracteres.'],
-  [/signups? not allowed|signup is disabled/i, 'El registro está cerrado en este momento.'],
-  [/unable to validate email|invalid email/i, 'Ese correo no parece válido.'],
-  [/for security purposes|rate limit|too many requests/i, 'Demasiados intentos seguidos. Espera un minuto.'],
-];
-function traducir(msg){
-  for(const [re, texto] of TRADUCCIONES) if(re.test(msg)) return texto;
-  return msg;
-}
-
-function pintarEntrada(){
-  const reg = modo === 'registro';
-  $('#tituloEntrada').textContent = reg ? 'Crear una cuenta' : 'Entrar al registro';
-  $('#subEntrada').textContent = reg
-    ? 'Los grupos que registres los verás únicamente tú.'
-    : 'Usa el correo y la contraseña de tu cuenta.';
-  $('#campoNombre').hidden = !reg;
-  $('#campoPass2').hidden = !reg;
-  $('#btnPrincipal').textContent = reg ? 'Crear mi cuenta' : 'Entrar';
-  $('#pass').autocomplete = reg ? 'new-password' : 'current-password';
-  $('#textoCambiar').textContent = reg ? '¿Ya tienes cuenta?' : '¿Todavía no tienes cuenta?';
-  $('#btnCambiarModo').textContent = reg ? 'Entrar' : 'Crear una';
-  $('#errorEntrada').hidden = true;
-  $('#okEntrada').hidden = true;
-}
-$('#btnCambiarModo').onclick = () => {
-  modo = modo === 'registro' ? 'entrar' : 'registro';
-  pintarEntrada();
-};
-$('#btnPrincipal').onclick = enviar;
-['#correo','#pass','#pass2','#nombreMaestro'].forEach(s =>
-  $(s).onkeydown = e => { if(e.key === 'Enter') enviar(); });
-
-function fallo(texto){
-  const err = $('#errorEntrada');
-  err.textContent = texto; err.hidden = false;
-  $('#okEntrada').hidden = true;
-  $('#btnPrincipal').disabled = false;
-}
-
-async function enviar(){
-  $('#errorEntrada').hidden = true;
-  $('#okEntrada').hidden = true;
-  $('#btnPrincipal').disabled = true;
-
-  const correo = $('#correo').value.trim();
-  const pass = $('#pass').value;
-  if(!correo || !pass) return fallo('Escribe tu correo y tu contraseña.');
-
-  if(modo === 'registro'){
-    const nombre = $('#nombreMaestro').value.trim();
-    if(!nombre) return fallo('Escribe tu nombre.');
-    if(pass.length < 6) return fallo('La contraseña necesita al menos 6 caracteres.');
-    if(pass !== $('#pass2').value) return fallo('Las dos contraseñas no son iguales.');
-
-    const { data, error } = await sb.auth.signUp({
-      email: correo, password: pass, options: { data: { nombre } }
-    });
-    $('#btnPrincipal').disabled = false;
-    if(error) return fallo(traducir(error.message));
-
-    if(data.session){          // el proyecto no pide confirmación: entra directo
-      limpiarCampos();
-      return abrirApp(data.session);
-    }
-    // el proyecto sí pide confirmación por correo
-    const ok = $('#okEntrada');
-    ok.textContent = `Cuenta creada. Te mandamos un correo a ${correo}: ábrelo, confirma tu cuenta y regresa aquí para entrar.`;
-    ok.hidden = false;
-    modo = 'entrar';
-    $('#tituloEntrada').textContent = 'Entrar al registro';
-    $('#subEntrada').textContent = 'Usa el correo y la contraseña de tu cuenta.';
-    $('#campoNombre').hidden = true;
-    $('#campoPass2').hidden = true;
-    $('#btnPrincipal').textContent = 'Entrar';
-    $('#textoCambiar').textContent = '¿Todavía no tienes cuenta?';
-    $('#btnCambiarModo').textContent = 'Crear una';
-    $('#pass').value = ''; $('#pass2').value = '';
-    return;
-  }
-
-  const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: pass });
-  $('#btnPrincipal').disabled = false;
-  if(error) return fallo(traducir(error.message));
-  limpiarCampos();
-  await abrirApp(data.session);
-}
-function limpiarCampos(){
-  $('#pass').value = ''; $('#pass2').value = ''; $('#nombreMaestro').value = '';
-}
-$('#btnSalir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-
-/* ---------------- lectura ---------------- */
-async function cargarTodo(){
-  const [g, a, s] = await Promise.all([
-    sb.from('grupos').select('*').order('creado_at'),
-    sb.from('alumnos').select('*').order('orden'),
-    sb.from('asistencias').select('*'),
-  ]);
-  if(g.error || a.error || s.error){
-    avisar('No se pudieron leer los datos. ¿Ya corriste el archivo esquema.sql?', true);
-    return;
-  }
-  grupos = g.data.map(x => ({id:x.id, nombre:x.nombre, alumnos:[], registros:{}}));
-  const porId = Object.fromEntries(grupos.map(x => [x.id, x]));
-  a.data.forEach(al => porId[al.grupo_id] && porId[al.grupo_id].alumnos.push({id:al.id, nombre:al.nombre, orden:al.orden}));
-  s.data.forEach(r => {
-    const gr = porId[r.grupo_id]; if(!gr) return;
-    (gr.registros[r.fecha] = gr.registros[r.fecha] || {})[r.alumno_id] = r.estado;
-  });
-  if(!grupos.find(x => x.id === activo)) activo = grupos[0] ? grupos[0].id : null;
-}
-
-/* ---------------- encabezado ---------------- */
-function pintarGrupos(){
-  const sel = $('#selGrupo');
-  if(!grupos.length){
-    sel.innerHTML = '<option>Sin grupos todavía</option>'; sel.disabled = true;
-  }else{
-    sel.disabled = false;
-    sel.innerHTML = grupos.map(g =>
-      `<option value="${g.id}"${g.id===activo?' selected':''}>${esc(g.nombre)}</option>`).join('');
-  }
-}
-$('#selGrupo').onchange = e => { activo = e.target.value; pintar(); };
-
-$('#btnNuevoGrupo').onclick = async () => {
-  const n = prompt('Nombre del grupo (por ejemplo: 3° B — Matemáticas)');
-  if(!n || !n.trim()) return;
-  const { data, error } = await sb.from('grupos').insert({nombre:n.trim()}).select().single();
-  if(error) return avisar('No se creó el grupo: ' + error.message, true);
-  grupos.push({id:data.id, nombre:data.nombre, alumnos:[], registros:{}});
-  activo = data.id; vista = 'alumnos'; pintar(); avisar('Grupo creado');
-};
-$('#btnRenombrar').onclick = async () => {
-  const g = grupo(); if(!g) return;
-  const n = prompt('Nuevo nombre del grupo', g.nombre);
-  if(!n || !n.trim()) return;
-  const previo = g.nombre; g.nombre = n.trim(); pintar();
-  if(!await escribir(() => sb.from('grupos').update({nombre:g.nombre}).eq('id',g.id), 'Nombre cambiado')) g.nombre = previo;
-};
-$('#btnBorrarGrupo').onclick = async () => {
-  const g = grupo(); if(!g) return;
-  if(!confirm(`Se borrará "${g.nombre}" con sus alumnos y todas sus listas. Esta acción no se puede deshacer.`)) return;
-  if(await escribir(() => sb.from('grupos').delete().eq('id',g.id), 'Grupo borrado')){
-    grupos = grupos.filter(x => x.id !== g.id);
-    activo = grupos[0] ? grupos[0].id : null;
-    pintar();
-  }
-};
-document.querySelectorAll('nav.pestanas button').forEach(b => b.onclick = () => { vista = b.dataset.v; pintar(); });
-
-/* ---------------- render ---------------- */
-function pintar(){
-  pintarGrupos();
-  document.querySelectorAll('nav.pestanas button').forEach(b =>
-    b.setAttribute('aria-selected', String(b.dataset.v === vista)));
-  const cont = $('#vista');
-  if(vista === 'datos') return pintarDatos(cont);
-  const g = grupo();
-  if(!g){
-    cont.innerHTML = `<div class="vacio">
-      <p>Aquí no hay nada todavía. Crea tu primer grupo para empezar a pasar lista.</p>
-      <button class="btn primario" onclick="document.getElementById('btnNuevoGrupo').click()">Crear un grupo</button></div>`;
-    return;
-  }
-  if(vista === 'lista') pintarLista(cont, g);
-  if(vista === 'alumnos') pintarAlumnos(cont, g);
-  if(vista === 'reporte') pintarReporte(cont, g);
-}
-
-/* ---------------- pasar lista ---------------- */
-function pintarLista(cont, g){
-  if(!g.alumnos.length){
-    cont.innerHTML = `<div class="vacio">
-      <p>El grupo ${esc(g.nombre)} aún no tiene alumnos. Agrégalos y podrás pasar lista en segundos.</p>
-      <button class="btn primario" id="irAlumnos">Agregar alumnos</button></div>`;
-    $('#irAlumnos').onclick = () => { vista='alumnos'; pintar(); };
-    return;
-  }
-  const dia = g.registros[fecha] || {};
-  const marcados = g.alumnos.filter(a => dia[a.id]).length;
-  const pct = Math.round(marcados / g.alumnos.length * 100);
-
-  cont.innerHTML = `
-    <div class="cabezal-dia">
-    <div class="fecha-barra">
-      <h1 class="fecha-larga">${fechaLarga(fecha)}</h1>
-      <div class="flechas">
-        <button id="ant" aria-label="Día anterior">←</button>
-        <button id="sig" aria-label="Día siguiente">→</button>
-      </div>
-      <input type="date" id="inpFecha" value="${fecha}" aria-label="Elegir fecha">
-      ${fecha !== hoy() ? '<button class="btn" id="irHoy">Ir a hoy</button>' : ''}
-    </div>
-    <div class="avance">${marcados} de ${g.alumnos.length} alumnos marcados
-      <div class="riel"><span style="width:${pct}%"></span></div></div>
-    </div>
-    <ol class="lista">
-      ${g.alumnos.map((a,i) => `
-        <li class="${dia[a.id]?'':'sin-marcar'}">
-          <span class="num">${i+1}</span>
-          <span class="nombre">${esc(a.nombre)}</span>
-          <span class="marcas">
-            ${ESTADOS.map(s => `<button data-a="${a.id}" data-e="${s.e}" aria-pressed="${dia[a.id]===s.e}"
-              title="${s.nom}" aria-label="${s.nom} para ${esc(a.nombre)}">${s.etq}</button>`).join('')}
-          </span>
-        </li>`).join('')}
-    </ol>
-    <p class="leyenda"><span><b>✓</b> asistencia</span><span><b>F</b> falta</span>
-      <span><b>R</b> retardo</span><span><b>J</b> falta justificada</span></p>
-    <div class="acciones">
-      <button class="btn primario" id="todosPresentes">Marcar todos con asistencia</button>
-      <button class="btn" id="faltanLosDemas">Los que faltan por marcar: falta</button>
-      <button class="btn peligro" id="limpiarDia">Borrar las marcas del día</button>
-      <button class="btn" id="imprimirDia">Imprimir esta lista</button>
-    </div>`;
-
-  $('#ant').onclick = () => { fecha = mueveDia(fecha,-1); pintar(); };
-  $('#sig').onclick = () => { fecha = mueveDia(fecha, 1); pintar(); };
-  $('#inpFecha').onchange = e => { if(e.target.value){ fecha = e.target.value; pintar(); } };
-  const bh = $('#irHoy'); if(bh) bh.onclick = () => { fecha = hoy(); pintar(); };
-
-  cont.querySelectorAll('.marcas button').forEach(b => b.onclick = async () => {
-    const alumnoId = b.dataset.a, estado = b.dataset.e;
-    const d = g.registros[fecha] = g.registros[fecha] || {};
-    if(d[alumnoId] === estado){
-      delete d[alumnoId]; pintar();
-      await escribir(() => sb.from('asistencias').delete().eq('alumno_id',alumnoId).eq('fecha',fecha));
-    }else{
-      d[alumnoId] = estado; pintar();
-      await escribir(() => sb.from('asistencias')
-        .upsert({grupo_id:g.id, alumno_id:alumnoId, fecha, estado}, {onConflict:'alumno_id,fecha'}));
-    }
-  });
-  $('#imprimirDia').onclick = () => window.print();
-  $('#todosPresentes').onclick = () => marcarVarios(g, () => 'A');
-  $('#faltanLosDemas').onclick = () => marcarVarios(g, a => (g.registros[fecha]||{})[a.id] || 'F');
-  $('#limpiarDia').onclick = async () => {
-    if(!confirm('Se borrarán todas las marcas de este día.')) return;
-    delete g.registros[fecha]; pintar();
-    await escribir(() => sb.from('asistencias').delete().eq('grupo_id',g.id).eq('fecha',fecha), 'Día limpio');
-  };
-}
-async function marcarVarios(g, quePonerle){
-  const filas = g.alumnos.map(a => ({grupo_id:g.id, alumno_id:a.id, fecha, estado:quePonerle(a)}));
-  g.registros[fecha] = Object.fromEntries(filas.map(f => [f.alumno_id, f.estado]));
-  pintar();
-  await escribir(() => sb.from('asistencias').upsert(filas, {onConflict:'alumno_id,fecha'}), 'Listo');
-}
-
-/* ---------------- alumnos ---------------- */
-function pintarAlumnos(cont, g){
-  cont.innerHTML = `
-    <h2 class="sec">${g.alumnos.length} alumno${g.alumnos.length===1?'':'s'} en ${esc(g.nombre)}</h2>
-    <ul class="alumnos">
-      ${g.alumnos.map((a,i) => `<li>
-        <span class="num">${i+1}</span><span class="nombre">${esc(a.nombre)}</span>
-        <button class="btn enlace" data-ed="${a.id}">Editar</button>
-        <button class="btn enlace" data-del="${a.id}">Quitar</button></li>`).join('')
-        || '<li><span class="nombre" style="color:var(--tinta-suave)">Todavía no hay nadie en la lista.</span></li>'}
-    </ul>
-    <label class="campo" for="nuevos">Escribe un nombre por renglón. Puedes pegar la lista completa de una vez.</label>
-    <textarea id="nuevos" placeholder="Aguilar Ramírez, Sofía&#10;Bautista Cruz, Diego&#10;Castañeda Ortiz, Ximena"></textarea>
-    <div class="acciones">
-      <button class="btn primario" id="agregar">Agregar a la lista</button>
-      <button class="btn" id="ordenar">Ordenar por apellido</button>
-    </div>`;
-
-  cont.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
-    const a = g.alumnos.find(x => x.id === b.dataset.del);
-    if(!confirm(`¿Quitar a ${a.nombre}? También se borran sus marcas de asistencia.`)) return;
-    if(await escribir(() => sb.from('alumnos').delete().eq('id',a.id), 'Alumno quitado')){
-      g.alumnos = g.alumnos.filter(x => x.id !== a.id);
-      Object.values(g.registros).forEach(d => delete d[a.id]);
-      pintar();
-    }
-  });
-  cont.querySelectorAll('[data-ed]').forEach(b => b.onclick = async () => {
-    const a = g.alumnos.find(x => x.id === b.dataset.ed);
-    const n = prompt('Nombre del alumno', a.nombre);
-    if(!n || !n.trim()) return;
-    const previo = a.nombre; a.nombre = n.trim(); pintar();
-    if(!await escribir(() => sb.from('alumnos').update({nombre:a.nombre}).eq('id',a.id), 'Nombre corregido')) a.nombre = previo;
-  });
-  $('#agregar').onclick = async () => {
-    const nombres = $('#nuevos').value.split('\n').map(s => s.trim()).filter(Boolean);
-    if(!nombres.length) return;
-    let orden = g.alumnos.reduce((m,a) => Math.max(m, a.orden), 0);
-    const filas = nombres.map(n => ({grupo_id:g.id, nombre:n, orden:++orden}));
-    const { data, error } = await sb.from('alumnos').insert(filas).select();
-    if(error) return avisar('No se agregaron: ' + error.message, true);
-    data.forEach(d => g.alumnos.push({id:d.id, nombre:d.nombre, orden:d.orden}));
-    g.alumnos.sort((a,b) => a.orden - b.orden);
-    pintar(); avisar(`${data.length} alumno${data.length===1?'':'s'} en la lista`);
-  };
-  $('#ordenar').onclick = async () => {
-    g.alumnos.sort((a,b) => a.nombre.localeCompare(b.nombre,'es'));
-    g.alumnos.forEach((a,i) => a.orden = i+1);
-    pintar();
-    await escribir(() => sb.from('alumnos')
-      .upsert(g.alumnos.map(a => ({id:a.id, grupo_id:g.id, nombre:a.nombre, orden:a.orden}))), 'Lista ordenada');
-  };
-}
-
-/* ---------------- reporte ---------------- */
-function resumen(g){
-  const dias = Object.keys(g.registros).sort();
-  return g.alumnos.map(a => {
-    let A=0,F=0,R=0,J=0,reg=0;
-    dias.forEach(d => {
-      const e = g.registros[d][a.id]; if(!e) return;
-      reg++;
-      if(e==='A')A++; else if(e==='F')F++; else if(e==='R')R++; else J++;
-    });
-    return {a,A,F,R,J,reg,pct: reg ? Math.round((A+R)/reg*100) : null};
-  });
-}
-function pintarReporte(cont, g){
-  const dias = Object.keys(g.registros).sort();
-  if(!dias.length || !g.alumnos.length){
-    cont.innerHTML = `<div class="vacio"><p>El reporte se llena solo conforme pases lista. Marca la asistencia de un día y vuelve aquí.</p></div>`;
-    return;
-  }
-  const filas = resumen(g);
-  const conDatos = filas.filter(f => f.pct !== null);
-  const prom = conDatos.length ? Math.round(conDatos.reduce((s,f)=>s+f.pct,0)/conDatos.length) : null;
-  cont.innerHTML = `
-    <h2 class="sec">${dias.length} día${dias.length===1?'':'s'} registrados · asistencia promedio ${prom===null?'—':prom+'%'}</h2>
-    <table>
-      <thead><tr><th>Alumno</th><th>✓</th><th>R</th><th>F</th><th>J</th><th>Asistencia</th></tr></thead>
-      <tbody>${filas.map(f => `<tr><td>${esc(f.a.nombre)}</td><td>${f.A}</td><td>${f.R}</td><td>${f.F}</td><td>${f.J}</td>
-        <td class="pct ${f.pct!==null && f.pct<80?'baja':''}">${f.pct===null?'—':f.pct+'%'}</td></tr>`).join('')}</tbody>
-    </table>
-    <p class="leyenda">La asistencia cuenta ✓ y R sobre los días en que el alumno tuvo marca. Las justificadas se muestran aparte. En rojo, quienes van por debajo del 80%.</p>
-    <div class="acciones">
-      <button class="btn primario" id="csv">Descargar este grupo (CSV)</button>
-      <button class="btn" id="imprimirRep">Imprimir el reporte</button>
-    </div>`;
-
-  $('#imprimirRep').onclick = () => window.print();
-
-  $('#csv').onclick = () => {
-    const lineas = [['Alumno', ...dias, 'Asistencias','Retardos','Faltas','Justificadas','% asistencia']];
-    filas.forEach(f => lineas.push([f.a.nombre, ...dias.map(d => g.registros[d][f.a.id] || ''),
-      f.A, f.R, f.F, f.J, f.pct===null?'':f.pct+'%']));
-    bajar(aCsv(lineas), `asistencia-${limpio(g.nombre)}.csv`, 'text/csv');
-  };
-}
-
-/* ---------------- descargar ---------------- */
-function pintarDatos(cont){
-  cont.innerHTML = `
-    <h2 class="sec">Descarga tu información cuando quieras</h2>
-    <p class="nota">Todo vive en tu base de datos de Supabase. Estas descargas son copias que se generan en el momento, con lo que hay guardado ahora mismo.</p>
-    <div class="acciones">
-      <button class="btn primario" id="todoCsv">Todos los grupos (CSV)</button>
-      <button class="btn" id="todoJson">Respaldo completo (JSON)</button>
-    </div>
-    <h2 class="sec">Restaurar desde un respaldo</h2>
-    <p class="nota">Sube un archivo JSON descargado antes. Los grupos se agregan como nuevos; nada de lo que ya tienes se borra ni se reemplaza.</p>
-    <div class="acciones">
-      <input type="file" id="archivo" accept="application/json,.json">
-      <button class="btn" id="restaurar">Restaurar</button>
-    </div>`;
-
-  $('#todoCsv').onclick = () => {
-    const lineas = [['Grupo','Alumno','Fecha','Estado','Significado']];
-    const nombre = {A:'Asistencia', F:'Falta', R:'Retardo', J:'Justificada'};
-    grupos.forEach(g => {
-      const porAlumno = Object.fromEntries(g.alumnos.map(a => [a.id, a.nombre]));
-      Object.keys(g.registros).sort().forEach(f => {
-        Object.entries(g.registros[f]).forEach(([alumnoId, e]) => {
-          if(porAlumno[alumnoId]) lineas.push([g.nombre, porAlumno[alumnoId], f, e, nombre[e]]);
-        });
-      });
-    });
-    if(lineas.length === 1) return avisar('Todavía no hay asistencias registradas.', true);
-    bajar(aCsv(lineas), `asistencia-completa-${hoy()}.csv`, 'text/csv');
-  };
-  $('#todoJson').onclick = () => {
-    const copia = {version:1, exportado:new Date().toISOString(), grupos};
-    bajar(JSON.stringify(copia, null, 2), `respaldo-asistencia-${hoy()}.json`, 'application/json');
-  };
-  $('#restaurar').onclick = async () => {
-    const f = $('#archivo').files[0];
-    if(!f) return avisar('Primero elige un archivo.', true);
-    let copia;
-    try{ copia = JSON.parse(await f.text()); }
-    catch{ return avisar('Ese archivo no es un respaldo válido.', true); }
-    if(!copia.grupos || !Array.isArray(copia.grupos)) return avisar('Ese archivo no es un respaldo válido.', true);
-    if(!confirm(`Se agregarán ${copia.grupos.length} grupo(s) del respaldo. ¿Continuar?`)) return;
-    try{
-      for(const g of copia.grupos){
-        const ng = (await sb.from('grupos').insert({nombre: g.nombre + ' (restaurado)'}).select().single()).data;
-        const alumnos = (g.alumnos || []).map((a,i) => ({grupo_id:ng.id, nombre:a.nombre, orden:a.orden ?? i+1}));
-        if(!alumnos.length) continue;
-        const nuevos = (await sb.from('alumnos').insert(alumnos).select()).data;
-        const mapa = {};
-        (g.alumnos || []).forEach((a,i) => { if(nuevos[i]) mapa[a.id] = nuevos[i].id; });
-        const marcas = [];
-        Object.entries(g.registros || {}).forEach(([fch, d]) =>
-          Object.entries(d).forEach(([viejo, e]) => {
-            if(mapa[viejo]) marcas.push({grupo_id:ng.id, alumno_id:mapa[viejo], fecha:fch, estado:e});
-          }));
-        for(let i = 0; i < marcas.length; i += 500){
-          await sb.from('asistencias').insert(marcas.slice(i, i+500));
-        }
-      }
-      await cargarTodo(); pintar(); avisar('Respaldo restaurado');
-    }catch(err){
-      console.error(err); avisar('Falló la restauración: ' + (err.message || ''), true);
-    }
-  };
-}
-
-/* ---------------- utilidades de archivo ---------------- */
-function aCsv(lineas){
-  return '\uFEFF' + lineas.map(l => l.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-}
-function limpio(s){ return s.replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/g,'').trim().replace(/\s+/g,'-'); }
-function bajar(texto, nombre, tipo){
-  const url = URL.createObjectURL(new Blob([texto], {type: tipo + ';charset=utf-8'}));
-  const a = document.createElement('a');
-  a.href = url; a.download = nombre; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-iniciar();
-</script>
+<script type="module" src="app.js"></script>
 </html>
