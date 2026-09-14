@@ -27,20 +27,29 @@ control-asistencia/
 
 ## Lo que ya está hecho
 
-- Las tablas `grupos`, `alumnos` y `asistencias` están creadas en el proyecto,
-  con sus llaves foráneas e índices.
-- La seguridad por fila está encendida en las tres, con políticas limitadas al
-  rol `authenticated`: quien abra la página sin iniciar sesión no obtiene ni un
-  renglón, y cada maestro solo alcanza sus propios datos.
-- La página tiene pantalla de entrada y de registro, con los mensajes de error\n  traducidos al español.\n- `config.js` ya trae la dirección del proyecto y la llave pública. No hay que
+- Las tablas `grupos`, `alumnos`, `asistencias` y `grupo_maestros` están
+  creadas en el proyecto, con sus llaves foráneas e índices.
+- La seguridad por fila está encendida en las cuatro, con políticas limitadas
+  al rol `authenticated`: quien abra la página sin iniciar sesión no obtiene ni
+  un renglón, y cada grupo solo lo ven los maestros que tienen acceso a él
+  (ver "Compartir un grupo" más abajo).
+- La página tiene pantalla de entrada y de registro, con los mensajes de error
+  traducidos al español.
+- `config.js` ya trae la dirección del proyecto y la llave pública. No hay que
   editarlo.
 
 ## Lo que falta hacer (en el panel de Supabase)
 
+**Aplicar la migración de grupos compartidos y notas.** Es la única vez que
+hay que tocar el panel para esta versión: en Supabase, **SQL Editor**, pega el
+contenido de `supabase/migrations/20260913000000_compartir_grupos_y_notas.sql`
+(o de `esquema.sql`, que ya es el espejo completo) y ejecútalo una vez. Es
+seguro volver a correrlo si algo sale mal a medio camino.
+
 La página ya tiene pantalla de **registro**: cualquier maestro puede crear su
-cuenta desde ahí, y gracias a la seguridad por fila cada quien ve únicamente sus
-propios grupos. Para que funcione hay que abrir el registro y decidir si quieres
-confirmación por correo.
+cuenta desde ahí, y gracias a la seguridad por fila cada quien ve únicamente
+los grupos a los que tiene acceso. Para que funcione hay que abrir el registro
+y decidir si quieres confirmación por correo.
 
 **1. Permitir el registro.** Authentication → Sign In / Providers → Email, y
 activa *Allow new users to sign up*. Si lo dejas apagado, la pantalla de
@@ -85,10 +94,17 @@ todos modos y quien abra las herramientas de desarrollo la puede leer, esté
 guardada donde esté. Esconderla del repositorio es higiene, no seguridad.
 
 **Lo que sí protege a tus alumnos** son las políticas de seguridad por fila que
-ya están puestas en las tres tablas, limitadas al rol `authenticated`: alguien
-con la llave pero sin sesión no obtiene ni un renglón, y cada maestro solo
-alcanza sus propios grupos. La llave abre la puerta del edificio; las políticas
-son las cerraduras de cada salón.
+ya están puestas en las cuatro tablas, limitadas al rol `authenticated`:
+alguien con la llave pero sin sesión no obtiene ni un renglón, y cada grupo
+solo lo ven los maestros que están en `grupo_maestros` para ese grupo. La
+llave abre la puerta del edificio; las políticas son las cerraduras de cada
+salón.
+
+Tampoco hay manera de inyectar SQL a través de la página: nunca arma una
+consulta pegando texto, todo pasa por el cliente de Supabase (que la
+parametriza, igual que una consulta preparada) o por las funciones de invitar
+un maestro, que están escritas sin `EXECUTE` ni concatenación y comprueban el
+rol de quien llama antes de tocar nada.
 
 La llave `service_role` / `secret` es otra cosa: esa sí salta todas las
 protecciones y no debe aparecer en ningún archivo de este proyecto.
@@ -209,17 +225,37 @@ está instalada en la pantalla de inicio.
 **Pasar lista.** Eliges la fecha y marcas a cada alumno con un toque:
 ✓ asistencia, F falta, R retardo, J justificada. Si te equivocas, tocas otra vez
 el mismo botón y se borra la marca. Hay atajos para marcar a todo el grupo con
-asistencia y corregir nada más a los que faltaron.
+asistencia y corregir nada más a los que faltaron. El botón "Calendario" abre
+un mes completo para saltar a cualquier día de un vistazo, con un puntito en
+los que ya tienen alguna marca. Si el día hábil anterior se quedó sin pasar
+lista, aparece un aviso para que no se te pase.
+
+**Notas.** Con un alumno ya marcado, el lápiz junto a su nombre abre una nota
+corta para ese día ("llegó 20 min tarde", "justificante médico"). En la
+pestaña de Alumnos hay además una nota general por alumno (alergias, contacto),
+sin relación con un día en particular.
+
+**Buscar.** En grupos grandes aparece un buscador arriba de la lista, tanto en
+Pasar lista como en Alumnos.
 
 **Alumnos.** Puedes pegar la lista completa de un jalón, un nombre por renglón,
 y ordenarla por apellido.
 
 **Reporte.** Cuenta asistencias, retardos, faltas y justificadas de cada quien,
-con su porcentaje. Abajo del 80% aparece en rojo.
+con su porcentaje y una barra a un lado. Abajo del 80% aparece en rojo. Puedes
+acotarlo a este mes o a un rango de fechas en vez de todo el ciclo, y más abajo
+hay una gráfica con la tendencia de asistencia del grupo completo, semana con
+semana (o mes con mes, si el ciclo ya lleva mucho registrado).
+
+**Compartir un grupo.** El botón "Compartir" muestra quién tiene acceso; quien
+creó el grupo (el "dueño") puede invitar a otro maestro escribiendo su correo
+—tiene que ya tener cuenta— y ese maestro entra a ver y editar el mismo grupo
+de inmediato, con los mismos permisos salvo borrar el grupo o invitar/quitar a
+otros, que quedan reservados al dueño.
 
 **Descargar.** Tres opciones, cuando quieras: CSV de un grupo con una columna
-por día, CSV de todos los grupos con un renglón por marca, y un respaldo
-completo en JSON que la misma aplicación puede volver a cargar.
+por día, CSV de todos los grupos con un renglón por marca (incluida su nota),
+y un respaldo completo en JSON que la misma aplicación puede volver a cargar.
 
 Los cambios se guardan en el momento. Si algo falla, sale un aviso rojo y la
 pantalla vuelve a mostrar lo que sí quedó guardado, para que nunca creas que se
@@ -237,5 +273,11 @@ guardó algo que no.
   entrar.
 - **"Falta la configuración"**: `config.js` no se subió o quedó en otra carpeta.
   Tiene que estar junto a `index.html`.
+- **"No hay ninguna cuenta con ese correo"** al invitar a un maestro: esa
+  persona todavía no se registra en la aplicación. Pídele que cree su cuenta
+  primero (botón "Crear una" en la pantalla de entrada) y vuelve a invitarla.
+- **"No tienes permiso para hacer esto"**: la acción (borrar el grupo, invitar
+  o quitar maestros) está reservada al dueño del grupo, y la cuenta con la que
+  entraste es colaboradora.
 - Supabase pausa los proyectos gratuitos tras una semana sin uso. Si vuelves de
   vacaciones y no carga, se reactiva con un clic desde el panel.

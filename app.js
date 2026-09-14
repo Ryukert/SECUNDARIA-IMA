@@ -5,10 +5,10 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
-  ESTADOS, hoy, fechaLarga, mueveDia, esFinDeSemana, cicloEscolar,
-  esc, limpio, traducirError, esFallaDeRed,
-  armarGrupos, diasRegistrados, marcasDelDia, cuantosMarcados,
-  resumen, promedioAsistencia, UMBRAL_BAJO,
+  ESTADOS, MESES, hoy, fechaISO, fechaLarga, fechaCorta, mueveDia, esFinDeSemana, cicloEscolar,
+  esc, limpio, normaliza, traducirError, esFallaDeRed,
+  armarGrupos, diasRegistrados, marcasDelDia, notaDelDia, cuantosMarcados,
+  diaHabilAnteriorSinMarcar, resumen, promedioAsistencia, serieAsistencia, UMBRAL_BAJO,
   aCsv, csvDeGrupo, csvDeTodo, armarRespaldo, leerRespaldo,
 } from './logica.js';
 
@@ -22,9 +22,17 @@ const estado = {
   fecha: hoy(),
   modo: 'entrar',
   sesion: null,
+  busqueda: '',
+  rangoReporte: 'ciclo',   // 'ciclo' | 'mes' | 'rango'
+  rangoDesde: '',
+  rangoHasta: '',
 };
 
 const grupoActivo = () => estado.grupos.find(g => g.id === estado.activo) || null;
+
+// Avisos de "no pasaste lista" que el maestro ya cerró. Solo dura la
+// sesión: no tiene caso guardarlo, mañana habrá otro día que revisar.
+const avisosDescartados = new Set();
 
 let sb = null;
 
@@ -126,27 +134,31 @@ async function directo(fn, mensajeOk) {
    bloquean cuando la página está instalada. Estos usan <dialog>.
    ===================================================================== */
 
-function dialogo({ titulo, texto = '', etiqueta = '', valor = '', aceptar = 'Aceptar', peligro = false }) {
+function dialogo({ titulo, texto = '', etiqueta = '', valor = '', aceptar = 'Aceptar', peligro = false, multilinea = false }) {
   const dlg = $('#dialogo');
+  const campo = multilinea ? $('#dlgCampoLargo') : $('#dlgCampo');
+
   $('#dlgTitulo').textContent = titulo;
   $('#dlgTexto').textContent = texto;
   $('#dlgTexto').hidden = !texto;
   $('#dlgEtiqueta').textContent = etiqueta;
   $('#dlgEtiqueta').hidden = !etiqueta;
-  $('#dlgCampo').hidden = !etiqueta;
-  $('#dlgCampo').value = valor;
+  $('#dlgEtiqueta').setAttribute('for', multilinea ? 'dlgCampoLargo' : 'dlgCampo');
+  $('#dlgCampo').hidden = !etiqueta || multilinea;
+  $('#dlgCampoLargo').hidden = !etiqueta || !multilinea;
+  campo.value = valor;
   $('#dlgAceptar').textContent = aceptar;
   $('#dlgAceptar').classList.toggle('peligro', peligro);
   $('#dlgAceptar').classList.toggle('primario', !peligro);
 
   dlg.showModal();
-  if (etiqueta) requestAnimationFrame(() => { $('#dlgCampo').focus(); $('#dlgCampo').select(); });
+  if (etiqueta) requestAnimationFrame(() => { campo.focus(); if (!multilinea) campo.select(); });
 
   return new Promise(resolver => {
     dlg.addEventListener('close', () => {
       const ok = dlg.returnValue === 'aceptar';
       if (!ok) return resolver(null);
-      resolver(etiqueta ? $('#dlgCampo').value.trim() : true);
+      resolver(etiqueta ? campo.value.trim() : true);
     }, { once: true });
   });
 }
@@ -154,6 +166,10 @@ function dialogo({ titulo, texto = '', etiqueta = '', valor = '', aceptar = 'Ace
 const preguntar = (titulo, etiqueta, valor) => dialogo({ titulo, etiqueta, valor, aceptar: 'Guardar' });
 const confirmar = (titulo, texto, aceptar = 'Sí, continuar') =>
   dialogo({ titulo, texto, aceptar, peligro: true });
+// A diferencia de preguntar(), aquí "" es una respuesta válida (borrar la
+// nota); solo cancelar regresa null.
+const preguntarLargo = (titulo, etiqueta, valor) =>
+  dialogo({ titulo, etiqueta, valor, aceptar: 'Guardar', multilinea: true });
 
 /* =====================================================================
    Sesión
@@ -360,6 +376,9 @@ function pintarLista(cont, g) {
   }
 
   const dia = marcasDelDia(g, estado.fecha);
+  const diaPendiente = diaHabilAnteriorSinMarcar(g, hoy());
+  const avisoClave = `${g.id}:${diaPendiente}`;
+  const mostrarAvisoPendiente = diaPendiente && !avisosDescartados.has(avisoClave);
 
   cont.innerHTML = `
     <div class="cabezal-dia">
@@ -370,26 +389,38 @@ function pintarLista(cont, g) {
           <button id="sig" aria-label="Día siguiente">→</button>
         </div>
         <input type="date" id="inpFecha" value="${estado.fecha}" aria-label="Elegir fecha">
+        <button class="btn" id="verCalendario">Calendario</button>
         ${estado.fecha !== hoy() ? '<button class="btn" id="irHoy">Ir a hoy</button>' : ''}
       </div>
       ${esFinDeSemana(estado.fecha) ? '<p class="nota aviso-dia">Este día cae en fin de semana.</p>' : ''}
+      ${mostrarAvisoPendiente ? `<p class="nota aviso-dia aviso-pendiente">
+        Parece que no pasaste lista el ${fechaLarga(diaPendiente)}.
+        <button class="btn enlace" id="irDiaPendiente">Ir a ese día</button>
+        <button class="btn enlace" id="ocultarAviso">Ocultar</button></p>` : ''}
       <div class="avance" aria-live="polite">
         <span id="conteo"></span>
         <div class="riel"><span id="riel"></span></div>
       </div>
+      ${g.alumnos.length > 8 ? `<input type="search" id="buscarAlumno" class="buscar"
+        placeholder="Buscar alumno…" value="${esc(estado.busqueda)}" aria-label="Buscar alumno">` : ''}
     </div>
 
     <ol class="lista">
-      ${g.alumnos.map((a, i) => `
+      ${g.alumnos.map((a, i) => {
+        const nota = notaDelDia(g, estado.fecha, a.id);
+        return `
         <li data-alumno="${a.id}" class="${dia[a.id] ? '' : 'sin-marcar'}">
           <span class="num">${i + 1}</span>
-          <span class="nombre">${esc(a.nombre)}</span>
+          <span class="nombre">${esc(a.nombre)}${dia[a.id] ? `<button class="btn-nota${nota ? ' con-nota' : ''}"
+              data-nota="${a.id}" title="${nota ? esc(nota) : 'Agregar nota'}"
+              aria-label="Nota para ${esc(a.nombre)}">✎</button>` : ''}</span>
           <span class="marcas">
             ${ESTADOS.map(s => `<button data-a="${a.id}" data-e="${s.e}"
               aria-pressed="${dia[a.id] === s.e}" title="${s.nom}"
               aria-label="${s.nom} para ${esc(a.nombre)}">${s.etq}</button>`).join('')}
           </span>
-        </li>`).join('')}
+        </li>`;
+      }).join('')}
     </ol>
 
     <p class="leyenda"><span><b>✓</b> asistencia</span><span><b>F</b> falta</span>
@@ -408,16 +439,53 @@ function pintarLista(cont, g) {
   $('#sig').onclick = () => cambiarFecha(mueveDia(estado.fecha, 1));
   $('#inpFecha').onchange = e => e.target.value && cambiarFecha(e.target.value);
   $('#irHoy')?.addEventListener('click', () => cambiarFecha(hoy()));
+  $('#verCalendario').onclick = () => abrirCalendario(g);
+  $('#irDiaPendiente')?.addEventListener('click', () => cambiarFecha(diaPendiente));
+  $('#ocultarAviso')?.addEventListener('click', () => { avisosDescartados.add(avisoClave); pintar(); });
   $('#imprimirDia').onclick = () => window.print();
   $('#todosPresentes').onclick = () => marcarTodos(g, () => 'A');
   $('#faltanLosDemas').onclick = () => marcarTodos(g, a => marcasDelDia(g, estado.fecha)[a.id] || 'F');
   $('#limpiarDia').onclick = () => limpiarDia(g);
 
+  const buscar = $('#buscarAlumno');
+  if (buscar) buscar.oninput = () => { estado.busqueda = buscar.value; aplicarBusqueda(cont, g); };
+  aplicarBusqueda(cont, g);
+
   // Un solo escuchador para toda la lista, en vez de uno por botón.
   cont.querySelector('ol.lista').addEventListener('click', ev => {
     const boton = ev.target.closest('button[data-a]');
     if (boton) marcar(g, boton.dataset.a, boton.dataset.e);
+    const notaBtn = ev.target.closest('button[data-nota]');
+    if (notaBtn) editarNotaDia(g, notaBtn.dataset.nota);
   });
+}
+
+// Oculta en el DOM ya pintado a quien no coincida con la búsqueda, sin
+// tocar la red ni volver a armar la lista completa.
+function aplicarBusqueda(cont, g) {
+  const q = normaliza(estado.busqueda.trim());
+  for (const li of cont.querySelectorAll('li[data-alumno]')) {
+    if (!q) { li.hidden = false; continue; }
+    const a = g.alumnos.find(x => x.id === li.dataset.alumno);
+    li.hidden = !normaliza(a?.nombre || '').includes(q);
+  }
+}
+
+async function editarNotaDia(g, alumnoId) {
+  const a = g.alumnos.find(x => x.id === alumnoId);
+  if (!a) return;
+  const fecha = estado.fecha;
+  const actual = notaDelDia(g, fecha, alumnoId);
+  const texto = await preguntarLargo('Nota del día', `${a.nombre} — ${fechaLarga(fecha)}`, actual);
+  if (texto === null) return;
+
+  if (texto) (g.notasDia[fecha] ??= {})[alumnoId] = texto;
+  else if (g.notasDia[fecha]) delete g.notasDia[fecha][alumnoId];
+  pintar();
+
+  encolar(`nota de ${alumnoId}`,
+    () => sb.from('asistencias').update({ nota: texto || null }).eq('alumno_id', alumnoId).eq('fecha', fecha),
+    recargar);
 }
 
 function cambiarFecha(iso) {
@@ -428,12 +496,26 @@ function cambiarFecha(iso) {
 // Actualiza solo el renglón tocado. Antes se rearmaba la lista completa en
 // cada toque, lo que en un grupo de 45 se sentía lento y perdía el lugar
 // donde ibas leyendo.
-function actualizarFila(alumnoId, estadoNuevo) {
+function actualizarFila(g, alumnoId, estadoNuevo) {
   const li = document.querySelector(`li[data-alumno="${alumnoId}"]`);
   if (!li) return;
   li.classList.toggle('sin-marcar', !estadoNuevo);
   for (const b of li.querySelectorAll('button[data-e]')) {
     b.setAttribute('aria-pressed', String(b.dataset.e === estadoNuevo));
+  }
+
+  // El botón de nota solo existe mientras el alumno tenga marca ese día.
+  const nombreSpan = li.querySelector('.nombre');
+  const notaBtn = nombreSpan.querySelector('.btn-nota');
+  if (estadoNuevo) {
+    if (!notaBtn) {
+      const a = g.alumnos.find(x => x.id === alumnoId);
+      nombreSpan.insertAdjacentHTML('beforeend',
+        `<button class="btn-nota" data-nota="${alumnoId}" title="Agregar nota"
+          aria-label="Nota para ${esc(a?.nombre || '')}">✎</button>`);
+    }
+  } else {
+    notaBtn?.remove();
   }
 }
 
@@ -447,22 +529,27 @@ function actualizarAvance(g) {
 }
 
 function marcar(g, alumnoId, valor) {
-  const dia = (g.registros[estado.fecha] ??= {});
+  const fechaHoy = estado.fecha;
+  const dia = (g.registros[fechaHoy] ??= {});
   const quitar = dia[alumnoId] === valor;
 
-  if (quitar) delete dia[alumnoId]; else dia[alumnoId] = valor;
-  if (!Object.keys(dia).length) delete g.registros[estado.fecha];
+  if (quitar) {
+    delete dia[alumnoId];
+    if (g.notasDia[fechaHoy]) delete g.notasDia[fechaHoy][alumnoId]; // la nota se va con la marca
+  } else {
+    dia[alumnoId] = valor;
+  }
+  if (!Object.keys(dia).length) delete g.registros[fechaHoy];
 
-  actualizarFila(alumnoId, quitar ? undefined : valor);
+  actualizarFila(g, alumnoId, quitar ? undefined : valor);
   actualizarAvance(g);
 
-  const fecha = estado.fecha;
   encolar(
     `marca ${valor} de ${alumnoId}`,
     () => quitar
-      ? sb.from('asistencias').delete().eq('alumno_id', alumnoId).eq('fecha', fecha)
+      ? sb.from('asistencias').delete().eq('alumno_id', alumnoId).eq('fecha', fechaHoy)
       : sb.from('asistencias').upsert(
-          { grupo_id: g.id, alumno_id: alumnoId, fecha, estado: valor },
+          { grupo_id: g.id, alumno_id: alumnoId, fecha: fechaHoy, estado: valor },
           { onConflict: 'alumno_id,fecha' }),
     recargar,
   );
@@ -473,7 +560,7 @@ function marcarTodos(g, queEstado) {
     grupo_id: g.id, alumno_id: a.id, fecha: estado.fecha, estado: queEstado(a),
   }));
   g.registros[estado.fecha] = Object.fromEntries(filas.map(f => [f.alumno_id, f.estado]));
-  for (const f of filas) actualizarFila(f.alumno_id, f.estado);
+  for (const f of filas) actualizarFila(g, f.alumno_id, f.estado);
   actualizarAvance(g);
   encolar('marcar a todo el grupo',
     () => sb.from('asistencias').upsert(filas, { onConflict: 'alumno_id,fecha' }), recargar);
@@ -485,6 +572,7 @@ async function limpiarDia(g) {
   if (!ok) return;
   const fecha = estado.fecha;
   delete g.registros[fecha];
+  delete g.notasDia[fecha];
   pintar();
   encolar('limpiar el día',
     () => sb.from('asistencias').delete().eq('grupo_id', g.id).eq('fecha', fecha), recargar);
@@ -502,9 +590,13 @@ async function recargar() {
 function pintarAlumnos(cont, g) {
   cont.innerHTML = `
     <h2 class="sec">${g.alumnos.length} alumno${g.alumnos.length === 1 ? '' : 's'} en ${esc(g.nombre)}</h2>
+    ${g.alumnos.length > 8 ? `<input type="search" id="buscarAlumno" class="buscar"
+      placeholder="Buscar alumno…" value="${esc(estado.busqueda)}" aria-label="Buscar alumno">` : ''}
     <ul class="alumnos">
       ${g.alumnos.map((a, i) => `<li data-alumno="${a.id}">
         <span class="num">${i + 1}</span><span class="nombre">${esc(a.nombre)}</span>
+        <button class="btn enlace${a.notas ? ' con-nota' : ''}" data-notas="${a.id}"
+          title="${a.notas ? esc(a.notas) : ''}">Notas</button>
         <button class="btn enlace" data-ed="${a.id}">Editar</button>
         <button class="btn enlace" data-del="${a.id}">Quitar</button></li>`).join('')
       || '<li><span class="nombre" style="color:var(--tinta-suave)">Todavía no hay nadie en la lista.</span></li>'}
@@ -521,9 +613,26 @@ function pintarAlumnos(cont, g) {
     if (!b) return;
     if (b.dataset.ed) editarAlumno(g, b.dataset.ed);
     if (b.dataset.del) quitarAlumno(g, b.dataset.del);
+    if (b.dataset.notas) editarNotasAlumno(g, b.dataset.notas);
   });
   $('#agregar').onclick = () => agregarAlumnos(g);
   $('#ordenar').onclick = () => ordenarAlumnos(g);
+
+  const buscar = $('#buscarAlumno');
+  if (buscar) buscar.oninput = () => { estado.busqueda = buscar.value; aplicarBusqueda(cont, g); };
+  aplicarBusqueda(cont, g);
+}
+
+async function editarNotasAlumno(g, id) {
+  const a = g.alumnos.find(x => x.id === id);
+  if (!a) return;
+  const texto = await preguntarLargo('Notas del alumno', a.nombre, a.notas || '');
+  if (texto === null) return;
+  const previo = a.notas;
+  a.notas = texto;
+  pintar();
+  const r = await directo(() => sb.from('alumnos').update({ notas: texto || null }).eq('id', id), 'Notas guardadas');
+  if (!r) { a.notas = previo; pintar(); }
 }
 
 async function editarAlumno(g, id) {
@@ -546,6 +655,7 @@ async function quitarAlumno(g, id) {
   if (!r) return;
   g.alumnos = g.alumnos.filter(x => x.id !== id);
   for (const d of Object.values(g.registros)) delete d[id];
+  for (const d of Object.values(g.notasDia)) delete d[id];
   pintar();
 }
 
@@ -587,6 +697,46 @@ async function ordenarAlumnos(g) {
    Reporte
    ===================================================================== */
 
+// Convierte la selección del reporte ('ciclo'/'mes'/'rango') en el
+// { desde, hasta } que entiende resumen().
+function rangoActivo() {
+  if (estado.rangoReporte === 'mes') {
+    const [a, m] = hoy().split('-').map(Number);
+    return { desde: `${hoy().slice(0, 7)}-01`, hasta: fechaISO(new Date(a, m, 0)) };
+  }
+  if (estado.rangoReporte === 'rango' && estado.rangoDesde && estado.rangoHasta) {
+    return { desde: estado.rangoDesde, hasta: estado.rangoHasta };
+  }
+  return null;
+}
+
+function etiquetaSerie(etiqueta, agrupador) {
+  if (agrupador === 'mes') {
+    const [a, m] = etiqueta.split('-').map(Number);
+    return `${MESES[m - 1].slice(0, 3)} ${String(a).slice(2)}`;
+  }
+  return fechaCorta(etiqueta);
+}
+
+function graficaTendencia(g) {
+  let agrupador = 'semana';
+  let serie = serieAsistencia(g, agrupador);
+  if (serie.length > 16) { agrupador = 'mes'; serie = serieAsistencia(g, agrupador); }
+  if (serie.length < 2) return '';
+
+  return `
+    <h2 class="sec">Tendencia del grupo</h2>
+    <div class="grafica-tendencia" role="img" aria-label="Asistencia del grupo por ${agrupador}, de ${serie.length} bloques">
+      ${serie.map(p => `
+        <div class="barra-tend">
+          <div class="marco"><span class="col" style="height:${p.pct ?? 0}%; background:${
+            p.pct !== null && p.pct < UMBRAL_BAJO ? 'var(--rojo)' : 'var(--marino)'}"
+            title="${esc(etiquetaSerie(p.etiqueta, agrupador))}: ${p.pct === null ? 'sin datos' : `${p.pct}%`}"></span></div>
+          <span class="etq">${esc(etiquetaSerie(p.etiqueta, agrupador))}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
 function pintarReporte(cont, g) {
   const dias = diasRegistrados(g);
   if (!dias.length || !g.alumnos.length) {
@@ -594,24 +744,49 @@ function pintarReporte(cont, g) {
       Marca la asistencia de un día y vuelve aquí.</p></div>`;
     return;
   }
-  const filas = resumen(g);
+
+  const rango = rangoActivo();
+  const diasEnRango = rango
+    ? dias.filter(d => (!rango.desde || d >= rango.desde) && (!rango.hasta || d <= rango.hasta))
+    : dias;
+  const filas = resumen(g, rango);
   const prom = promedioAsistencia(filas);
 
   cont.innerHTML = `
-    <h2 class="sec">${dias.length} día${dias.length === 1 ? '' : 's'} registrados${prom === null ? '' : ` · asistencia promedio ${prom}%`}</h2>
+    <div class="rango-reporte">
+      <button class="btn${estado.rangoReporte === 'ciclo' ? ' primario' : ''}" data-rango="ciclo">Todo el ciclo</button>
+      <button class="btn${estado.rangoReporte === 'mes' ? ' primario' : ''}" data-rango="mes">Este mes</button>
+      <button class="btn${estado.rangoReporte === 'rango' ? ' primario' : ''}" data-rango="rango">Rango…</button>
+      ${estado.rangoReporte === 'rango' ? `
+        <input type="date" id="repDesde" value="${estado.rangoDesde}" aria-label="Desde">
+        <span>al</span>
+        <input type="date" id="repHasta" value="${estado.rangoHasta}" aria-label="Hasta">` : ''}
+    </div>
+    <h2 class="sec">${diasEnRango.length} día${diasEnRango.length === 1 ? '' : 's'} registrados${prom === null ? '' : ` · asistencia promedio ${prom}%`}</h2>
     <table>
       <thead><tr><th>Alumno</th><th>✓</th><th>R</th><th>F</th><th>J</th><th>Asistencia</th></tr></thead>
       <tbody>${filas.map(f => `<tr>
         <td>${esc(f.alumno.nombre)}</td><td>${f.A}</td><td>${f.R}</td><td>${f.F}</td><td>${f.J}</td>
-        <td class="pct ${f.pct !== null && f.pct < UMBRAL_BAJO ? 'baja' : ''}">${f.pct === null ? '—' : `${f.pct}%`}</td>
+        <td class="pct ${f.pct !== null && f.pct < UMBRAL_BAJO ? 'baja' : ''}">
+          <span class="barra" style="width:${f.pct ?? 0}%"></span><span class="valor">${f.pct === null ? '—' : `${f.pct}%`}</span>
+        </td>
       </tr>`).join('')}</tbody>
     </table>
     <p class="leyenda">La asistencia cuenta ✓ y R sobre los días en que el alumno tuvo marca.
       Las justificadas se muestran aparte. En rojo, quienes van por debajo del ${UMBRAL_BAJO}%.</p>
+
+    ${graficaTendencia(g)}
+
     <div class="acciones">
       <button class="btn primario" id="csv">Descargar este grupo (CSV)</button>
       <button class="btn" id="imprimirRep">Imprimir el reporte</button>
     </div>`;
+
+  for (const b of cont.querySelectorAll('[data-rango]')) {
+    b.onclick = () => { estado.rangoReporte = b.dataset.rango; pintar(); };
+  }
+  $('#repDesde')?.addEventListener('change', e => { estado.rangoDesde = e.target.value; pintar(); });
+  $('#repHasta')?.addEventListener('change', e => { estado.rangoHasta = e.target.value; pintar(); });
 
   $('#csv').onclick = () => bajar(aCsv(csvDeGrupo(g)), `asistencia-${limpio(g.nombre)}.csv`, 'text/csv');
   $('#imprimirRep').onclick = () => window.print();
@@ -671,7 +846,7 @@ async function restaurar() {
       if (ng.error) throw ng.error;
 
       const alumnos = (g.alumnos || []).map((a, i) => ({
-        grupo_id: ng.data.id, nombre: a.nombre, orden: a.orden ?? i + 1,
+        grupo_id: ng.data.id, nombre: a.nombre, orden: a.orden ?? i + 1, notas: a.notas || null,
       }));
       if (!alumnos.length) continue;
 
@@ -685,7 +860,8 @@ async function restaurar() {
       for (const [fecha, dia] of Object.entries(g.registros || {})) {
         for (const [viejo, e] of Object.entries(dia)) {
           if (mapa.has(viejo)) {
-            marcas.push({ grupo_id: ng.data.id, alumno_id: mapa.get(viejo), fecha, estado: e });
+            const nota = (g.notasDia?.[fecha] || {})[viejo] || null;
+            marcas.push({ grupo_id: ng.data.id, alumno_id: mapa.get(viejo), fecha, estado: e, nota });
           }
         }
       }
@@ -725,7 +901,7 @@ async function nuevoGrupo() {
   if (!nombre) return;
   const r = await directo(() => sb.from('grupos').insert({ nombre }).select().single(), 'Grupo creado');
   if (!r) return;
-  estado.grupos.push({ id: r.data.id, nombre: r.data.nombre, alumnos: [], registros: {} });
+  estado.grupos.push({ id: r.data.id, nombre: r.data.nombre, alumnos: [], registros: {}, notasDia: {} });
   estado.activo = r.data.id;
   estado.vista = 'alumnos';
   pintar();
@@ -756,6 +932,138 @@ async function borrarGrupo() {
   estado.activo = estado.grupos[0]?.id ?? null;
   pintar();
 }
+
+/* =====================================================================
+   Calendario del mes (pasar lista)
+   ===================================================================== */
+
+let calMostrado = null; // 'YYYY-MM' del mes que se está mostrando
+
+function mesSiguiente(ym) {
+  const [a, m] = ym.split('-').map(Number);
+  const d = new Date(a, m, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function mesAnterior(ym) {
+  const [a, m] = ym.split('-').map(Number);
+  const d = new Date(a, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function abrirCalendario(g) {
+  calMostrado = estado.fecha.slice(0, 7);
+  pintarCalendario(g);
+  $('#dlgCalendario').showModal();
+}
+
+function pintarCalendario(g) {
+  const [a, m] = calMostrado.split('-').map(Number);
+  $('#calTitulo').textContent = `${MESES[m - 1]} ${a}`;
+
+  const offset = (new Date(a, m - 1, 1).getDay() + 6) % 7; // lunes=0 … domingo=6
+  const totalDias = new Date(a, m, 0).getDate();
+
+  let celdas = '';
+  for (let i = 0; i < offset; i++) celdas += '<span></span>';
+  for (let d = 1; d <= totalDias; d++) {
+    const iso = `${calMostrado}-${String(d).padStart(2, '0')}`;
+    const marcado = cuantosMarcados(g, iso) > 0;
+    celdas += `<button class="cal-dia${esFinDeSemana(iso) ? ' finde' : ''}${iso === estado.fecha ? ' sel' : ''}${marcado ? ' marcado' : ''}"
+      data-fecha="${iso}">${d}</button>`;
+  }
+
+  $('#calDias').innerHTML = '<span class="cal-etq">L</span><span class="cal-etq">M</span><span class="cal-etq">M</span>'
+    + '<span class="cal-etq">J</span><span class="cal-etq">V</span><span class="cal-etq">S</span><span class="cal-etq">D</span>'
+    + celdas;
+
+  for (const b of $$('#calDias button[data-fecha]')) {
+    b.onclick = () => { cambiarFecha(b.dataset.fecha); $('#dlgCalendario').close(); };
+  }
+}
+
+$('#calAnt').onclick = () => { calMostrado = mesAnterior(calMostrado); pintarCalendario(grupoActivo()); };
+$('#calSig').onclick = () => { calMostrado = mesSiguiente(calMostrado); pintarCalendario(grupoActivo()); };
+$('#calCerrar').onclick = () => $('#dlgCalendario').close();
+
+/* =====================================================================
+   Compartir grupo entre maestros
+
+   Se apoya en tres funciones de la base de datos (invitar_maestro,
+   maestros_del_grupo, quitar_maestro): cada una comprueba ahí mismo que
+   quien llama tenga permiso, así que aquí solo hay que mostrar lo que
+   regresan y traducir el error si algo se rechaza.
+   ===================================================================== */
+
+async function abrirCompartir(g) {
+  $('#errorCompartir').hidden = true;
+  $('#compartirSub').textContent = `Quién tiene acceso a ${g.nombre}.`;
+  $('#listaMaestros').innerHTML = '<li>Cargando…</li>';
+  $('#invitarBloque').hidden = true;
+  $('#dlgCompartir').showModal();
+  await pintarMaestros(g);
+}
+
+async function pintarMaestros(g) {
+  const { data, error } = await sb.rpc('maestros_del_grupo', { p_grupo_id: g.id });
+  if (error) {
+    $('#listaMaestros').innerHTML = '';
+    $('#errorCompartir').textContent = traducirError(error.message);
+    $('#errorCompartir').hidden = false;
+    return;
+  }
+
+  const yo = estado.sesion.user.id;
+  const soyDueno = data.some(m => m.user_id === yo && m.rol === 'dueño');
+  $('#invitarBloque').hidden = !soyDueno;
+
+  $('#listaMaestros').innerHTML = data.map(m => `
+    <li>
+      <span>${esc(m.correo)}${m.user_id === yo ? ' (tú)' : ''}</span>
+      <span class="rol-etq">${m.rol === 'dueño' ? 'Dueño' : 'Colaborador'}</span>
+      ${soyDueno && m.user_id !== yo ? `<button class="btn enlace" data-quitar="${m.user_id}">Quitar</button>` : ''}
+    </li>`).join('') || '<li>Nadie más tiene acceso todavía.</li>';
+
+  for (const b of $$('#listaMaestros button[data-quitar]')) {
+    b.onclick = () => quitarMaestro(g, b.dataset.quitar);
+  }
+}
+
+async function invitarMaestro(g) {
+  const correo = $('#correoInvitar').value.trim();
+  $('#errorCompartir').hidden = true;
+  if (!correo) return;
+
+  const btn = $('#btnInvitar');
+  btn.disabled = true;
+  const { error } = await sb.rpc('invitar_maestro', { p_grupo_id: g.id, p_correo: correo });
+  btn.disabled = false;
+
+  if (error) {
+    $('#errorCompartir').textContent = traducirError(error.message);
+    $('#errorCompartir').hidden = false;
+    return;
+  }
+  $('#correoInvitar').value = '';
+  avisar('Maestro invitado');
+  await pintarMaestros(g);
+}
+
+async function quitarMaestro(g, userId) {
+  const ok = await confirmar('Quitar maestro', 'Deja de tener acceso a este grupo de inmediato.', 'Quitar');
+  if (!ok) return;
+
+  const { error } = await sb.rpc('quitar_maestro', { p_grupo_id: g.id, p_user_id: userId });
+  if (error) { avisar(traducirError(error.message), true); return; }
+  avisar('Maestro quitado');
+  await pintarMaestros(g);
+}
+
+$('#btnCompartir').onclick = () => { const g = grupoActivo(); if (g) abrirCompartir(g); };
+$('#btnInvitar').onclick = () => { const g = grupoActivo(); if (g) invitarMaestro(g); };
+$('#cerrarCompartir').onclick = () => $('#dlgCompartir').close();
+$('#correoInvitar').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); $('#btnInvitar').click(); }
+});
 
 /* =====================================================================
    Enlaces con la pantalla

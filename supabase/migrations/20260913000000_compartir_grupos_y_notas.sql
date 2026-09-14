@@ -1,41 +1,15 @@
 -- =====================================================================
---  Control de asistencia — estructura de la base de datos
---  Aplicada el 8 de septiembre de 2026 al proyecto SECUNDARIA IMA, con la
---  ampliación de grupos compartidos y notas del 13 de septiembre.
---  Se puede volver a correr sin romper nada.
+--  Control de asistencia — grupos compartidos y notas
+--  Se agrega sobre la migración inicial (20260908204727). Se puede volver
+--  a correr sin romper nada.
 -- =====================================================================
 
-create table if not exists public.grupos (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  nombre     text not null,
-  creado_at  timestamptz not null default now()
-);
-
-create table if not exists public.alumnos (
-  id        uuid primary key default gen_random_uuid(),
-  user_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  grupo_id  uuid not null references public.grupos(id) on delete cascade,
-  nombre    text not null,
-  orden     integer not null default 0,
-  notas     text
-);
-
-create table if not exists public.asistencias (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  grupo_id   uuid not null references public.grupos(id) on delete cascade,
-  alumno_id  uuid not null references public.alumnos(id) on delete cascade,
-  fecha      date not null,
-  estado     text not null check (estado in ('A','F','R','J')),
-  nota       text,
-  unique (alumno_id, fecha)
-);
-
--- Quién tiene acceso a cada grupo. El maestro que crea un grupo queda
--- como "dueño" automáticamente (ver el trigger más abajo); un dueño puede
--- invitar a otros maestros como "colaborador", con acceso completo a los
--- alumnos y las asistencias del grupo.
+-- ---------------------------------------------------------------------
+--  Quién tiene acceso a cada grupo. El maestro que crea un grupo queda
+--  como "dueño" automáticamente (ver el trigger más abajo); un dueño
+--  puede invitar a otros maestros como "colaborador", con acceso completo
+--  a los alumnos y las asistencias del grupo.
+-- ---------------------------------------------------------------------
 create table if not exists public.grupo_maestros (
   grupo_id  uuid not null references public.grupos(id) on delete cascade,
   user_id   uuid not null references auth.users(id) on delete cascade,
@@ -44,23 +18,22 @@ create table if not exists public.grupo_maestros (
   primary key (grupo_id, user_id)
 );
 
-create index if not exists alumnos_grupo_idx     on public.alumnos (grupo_id);
-create index if not exists asistencias_grupo_idx on public.asistencias (grupo_id, fecha);
-create index if not exists grupos_user_idx       on public.grupos (user_id);
 create index if not exists grupo_maestros_user_idx on public.grupo_maestros (user_id);
 
+alter table public.alumnos     add column if not exists notas text;
+alter table public.asistencias add column if not exists nota  text;
+
 -- ---------------------------------------------------------------------
---  Funciones de acceso para compartir un grupo. Se marcan "security
---  definer" a propósito, para poder consultar auth.users y para que
---  grupo_maestros no necesite políticas de insert/update/delete abiertas
---  al cliente: la única forma de agregar o quitar un maestro es a través
---  de estas funciones, y cada una comprueba el rol de quien llama antes
---  de tocar nada. Ninguna arma SQL a partir de texto (nada de EXECUTE con
---  concatenación), así que no hay manera de inyectar SQL a través de
---  ellas.
+--  Funciones de acceso. Se marcan "security definer" a propósito, para
+--  poder consultar auth.users y para que grupo_maestros no necesite
+--  políticas de insert/update/delete abiertas al cliente: la única forma
+--  de agregar o quitar un maestro es a través de estas funciones, y cada
+--  una comprueba el rol de quien llama antes de tocar nada. Ninguna arma
+--  SQL a partir de texto (nada de EXECUTE con concatenación), así que no
+--  hay manera de inyectar SQL a través de ellas.
 -- ---------------------------------------------------------------------
 
--- Ayudantes para las políticas de más abajo. Al ser "security definer" no
+-- Ayudantes para las políticas de abajo. Al ser "security definer" no
 -- disparan de nuevo la política de grupo_maestros sobre sí mismas, que es
 -- lo que causaría "infinite recursion detected in policy".
 create or replace function public.es_miembro(p_grupo_id uuid)
@@ -191,19 +164,14 @@ $$;
 grant execute on function public.quitar_maestro(uuid, uuid) to authenticated;
 
 -- ---------------------------------------------------------------------
---  Seguridad: cualquier maestro que sea miembro de un grupo (dueño o
---  colaborador invitado) ve y modifica sus alumnos y asistencias. Borrar
---  el grupo y administrar quién tiene acceso queda reservado al dueño.
---  Al limitar las políticas al rol "authenticated", quien abra la página
---  sin iniciar sesión no obtiene absolutamente nada.
+--  RLS: en vez de "solo quien lo creó", ahora "cualquier miembro del
+--  grupo". Borrar el grupo y administrar quién tiene acceso queda
+--  reservado al dueño.
 -- ---------------------------------------------------------------------
-alter table public.grupos         enable row level security;
-alter table public.alumnos        enable row level security;
-alter table public.asistencias    enable row level security;
 alter table public.grupo_maestros enable row level security;
 
 drop policy if exists "solo lo mio" on public.grupos;
-drop policy if exists "miembros ven" on public.grupos;
+drop policy if exists "miembros ven y editan" on public.grupos;
 drop policy if exists "cualquiera crea su grupo" on public.grupos;
 drop policy if exists "miembros renombran" on public.grupos;
 drop policy if exists "solo dueno borra" on public.grupos;
@@ -229,9 +197,11 @@ drop policy if exists "miembros ven maestros" on public.grupo_maestros;
 create policy "miembros ven maestros" on public.grupo_maestros
   for select to authenticated using (public.es_miembro(grupo_id));
 
--- Los grupos que ya existían antes de la migración de grupos compartidos
--- no tienen todavía su renglón de dueño en grupo_maestros. Sin esto, su
--- creador se quedaría fuera de su propio grupo.
+-- ---------------------------------------------------------------------
+--  Los grupos que ya existían (de antes de esta migración) no tienen
+--  todavía su renglón de dueño en grupo_maestros. Sin esto, su creador se
+--  quedaría fuera de su propio grupo en cuanto se aplique la migración.
+-- ---------------------------------------------------------------------
 insert into public.grupo_maestros (grupo_id, user_id, rol)
 select id, user_id, 'dueño' from public.grupos
 on conflict (grupo_id, user_id) do nothing;
