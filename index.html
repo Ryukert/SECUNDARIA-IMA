@@ -85,7 +85,7 @@
   .btn.enlace{border:0; background:none; padding:4px 2px; color:var(--marino); text-decoration:underline}
   .btn.claro{background:transparent; color:#fff; border-color:rgba(255,255,255,.45)}
   .btn.claro:hover{background:rgba(255,255,255,.12); border-color:#fff}
-  input[type=date], input[type=text], input[type=email], input[type=password], textarea{
+  input[type=date], input[type=text], input[type=email], input[type=password], input[type=search], textarea{
     font:inherit; color:var(--tinta); background:#fff; border:1px solid var(--reglado-fuerte);
     border-radius:2px; padding:8px 10px}
   input:focus-visible, textarea:focus-visible{outline:2px solid var(--marino); outline-offset:0}
@@ -152,7 +152,8 @@
   .dialogo-cuerpo h2{font-family:var(--serif); font-size:18px; margin:0 0 8px; line-height:1.35}
   .dialogo-cuerpo p{margin:0 0 4px; font-size:15px; color:var(--tinta-suave)}
   .dialogo-cuerpo label{display:block; font-size:13.5px; color:var(--tinta-suave); margin:14px 0 5px}
-  .dialogo-cuerpo input{width:100%}
+  .dialogo-cuerpo input, .dialogo-cuerpo textarea{width:100%}
+  .dialogo-cuerpo textarea{min-height:80px; resize:vertical}
   .dialogo-acciones{display:flex; flex-direction:row-reverse; gap:9px; margin-top:20px}
   .dialogo-acciones .btn{min-height:42px; padding:6px 16px}
   .pendientes{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35);
@@ -165,6 +166,62 @@
   .aviso.ver{opacity:1}
   .aviso.mal{background:var(--rojo)}
   #cargando{max-width:400px; margin:0 auto; padding:60px 20px; color:var(--tinta-suave)}
+
+  /* ---------- buscar alumnos ---------- */
+  input.buscar{width:100%; margin:14px 0 0}
+  li[hidden]{display:none !important}
+
+  /* ---------- nota por marca y por alumno ---------- */
+  .btn-nota{border:0; background:none; padding:2px 4px; margin-left:6px; color:var(--reglado-fuerte);
+    cursor:pointer; font-size:14px; vertical-align:middle}
+  .btn-nota:hover{color:var(--marino)}
+  .btn-nota.con-nota{color:var(--marino)}
+  .btn.enlace.con-nota{font-weight:700}
+
+  /* ---------- aviso de día sin marcar ---------- */
+  .aviso-pendiente{color:var(--ambar)}
+  .aviso-pendiente .btn.enlace{color:inherit; font-weight:600}
+
+  /* ---------- rango del reporte ---------- */
+  .rango-reporte{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px}
+  .rango-reporte input[type=date]{padding:5px 8px}
+
+  /* ---------- barra de % dentro de la tabla del reporte ---------- */
+  td.pct{position:relative}
+  td.pct .barra{position:absolute; left:0; top:5px; bottom:5px; background:rgba(22,48,92,.12); z-index:0}
+  td.pct.baja .barra{background:rgba(179,38,30,.14)}
+  td.pct .valor{position:relative; z-index:1}
+
+  /* ---------- tendencia del grupo ---------- */
+  .grafica-tendencia{display:flex; align-items:flex-start; gap:6px; margin:6px 0 26px; overflow-x:auto; padding-bottom:2px}
+  .barra-tend{flex:1 1 0; min-width:16px; display:flex; flex-direction:column; align-items:center}
+  .barra-tend .marco{height:90px; width:100%; max-width:26px; display:flex; align-items:flex-end}
+  .barra-tend .col{width:100%; border-radius:2px 2px 0 0; transition:height .2s ease}
+  .barra-tend .etq{font-size:10.5px; color:var(--tinta-suave); margin-top:6px; white-space:nowrap}
+
+  /* ---------- calendario del mes ---------- */
+  .cal-cuerpo{width:min(320px, 100%)}
+  .cal-cabeza{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
+  .cal-cabeza h2{font-family:var(--serif); font-size:17px; margin:0; text-transform:capitalize}
+  .cal-dias{display:grid; grid-template-columns:repeat(7, 1fr); gap:3px; text-align:center}
+  .cal-etq{font-size:11.5px; color:var(--tinta-suave); padding:4px 0}
+  .cal-dia{border:1px solid transparent; background:none; font:inherit; font-size:13.5px; padding:8px 0;
+    border-radius:2px; cursor:pointer; color:var(--tinta)}
+  .cal-dia:hover{background:var(--sel)}
+  .cal-dia.finde{color:var(--tinta-suave)}
+  .cal-dia.marcado{font-weight:700}
+  .cal-dia.marcado::after{content:""; display:block; width:4px; height:4px; border-radius:50%;
+    background:var(--marino); margin:3px auto 0}
+  .cal-dia.sel{background:var(--marino); color:#fff}
+  .cal-dia.sel.marcado::after{background:#fff}
+
+  /* ---------- compartir grupo ---------- */
+  ul.maestros{list-style:none; margin:0 0 18px; padding:0; border-top:1px solid var(--reglado-fuerte)}
+  ul.maestros li{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--reglado); font-size:14.5px}
+  ul.maestros li span:first-child{flex:1; min-width:0; overflow-wrap:anywhere}
+  .rol-etq{font-size:12px; color:var(--tinta-suave); flex:none}
+  #invitarBloque label{display:block; font-size:13.5px; color:var(--tinta-suave); margin:6px 0 5px}
+  #invitarBloque input{width:100%}
 
   @media (prefers-reduced-motion: reduce){*{transition:none !important}}
   /* ---------- celular: es donde se pasa lista de verdad ---------- */
@@ -242,7 +299,8 @@
     select.grupo{color:#000; appearance:none}
     dialog, .pendientes, .aviso-dia,
     nav.pestanas, .acciones, .flechas, .avance .riel, input[type=date],
-    .btn, .cambiar, .aviso, textarea, label.campo{display:none !important}
+    .btn, .cambiar, .aviso, textarea, label.campo,
+    input.buscar, .btn-nota, .rango-reporte, .grafica-tendencia{display:none !important}
     ol.lista li{break-inside:avoid; padding:3px 0}
     .marcas button{border:0; background:none !important; color:#000 !important; width:auto; height:auto; padding:0 4px}
     .marcas button[aria-pressed="false"]{display:none}
@@ -345,6 +403,7 @@
       <div class="grupo-acciones">
         <button class="btn" id="btnNuevoGrupo">Nuevo grupo</button>
         <button class="btn" id="btnRenombrar">Cambiar nombre</button>
+        <button class="btn" id="btnCompartir">Compartir</button>
         <button class="btn peligro" id="btnBorrarGrupo">Borrar grupo</button>
       </div>
     </div>
@@ -369,11 +428,45 @@
     <p id="dlgTexto" hidden></p>
     <label id="dlgEtiqueta" for="dlgCampo" hidden></label>
     <input type="text" id="dlgCampo" hidden>
+    <textarea id="dlgCampoLargo" rows="3" hidden></textarea>
     <div class="dialogo-acciones">
       <button class="btn primario" value="aceptar" id="dlgAceptar">Aceptar</button>
       <button class="btn" value="cancelar" id="dlgCancelar">Cancelar</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="dlgCalendario">
+  <div class="dialogo-cuerpo cal-cuerpo">
+    <div class="cal-cabeza">
+      <button class="btn" id="calAnt" aria-label="Mes anterior">←</button>
+      <h2 id="calTitulo"></h2>
+      <button class="btn" id="calSig" aria-label="Mes siguiente">→</button>
+    </div>
+    <div class="cal-dias" id="calDias"></div>
+    <div class="dialogo-acciones">
+      <button class="btn" id="calCerrar">Cerrar</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgCompartir">
+  <div class="dialogo-cuerpo">
+    <h2>Compartir grupo</h2>
+    <p id="compartirSub" class="nota"></p>
+    <ul class="maestros" id="listaMaestros"></ul>
+    <div id="invitarBloque">
+      <label for="correoInvitar">Invitar por correo</label>
+      <input type="email" id="correoInvitar" placeholder="maestro@correo.com" autocomplete="off">
+      <div class="acciones">
+        <button class="btn primario" id="btnInvitar">Invitar</button>
+      </div>
+    </div>
+    <p class="error" id="errorCompartir" hidden></p>
+    <div class="dialogo-acciones">
+      <button class="btn" id="cerrarCompartir">Cerrar</button>
+    </div>
+  </div>
 </dialog>
 
 <!-- Configuración del sistema. -->

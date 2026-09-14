@@ -4,10 +4,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  fechaISO, fechaLarga, mueveDia, esFinDeSemana, cicloEscolar,
-  esc, limpio, traducirError, esFallaDeRed,
+  fechaISO, fechaLarga, fechaCorta, mueveDia, esFinDeSemana, cicloEscolar,
+  esc, limpio, normaliza, traducirError, esFallaDeRed,
   armarGrupos, resumen, promedioAsistencia, cuantosMarcados,
-  aCsv, csvDeGrupo, csvDeTodo, leerRespaldo,
+  notaDelDia, diaHabilAnteriorSinMarcar, serieAsistencia,
+  aCsv, csvDeGrupo, csvDeTodo, armarRespaldo, leerRespaldo,
 } from './logica.js';
 
 test('las fechas se manejan en hora local, sin adelantar el día', () => {
@@ -47,12 +48,12 @@ test('traduce los errores de Supabase y distingue la falta de red', () => {
 const grupos = [{ id: 'g1', nombre: '3° B' }];
 const alumnos = [
   { id: 'a2', grupo_id: 'g1', nombre: 'Bautista, Diego', orden: 2 },
-  { id: 'a1', grupo_id: 'g1', nombre: 'Aguilar, Sofía', orden: 1 },
+  { id: 'a1', grupo_id: 'g1', nombre: 'Aguilar, Sofía', orden: 1, notas: 'Alergia a maní' },
   { id: 'a9', grupo_id: 'gX', nombre: 'De otro grupo', orden: 1 },
 ];
 const asistencias = [
   { grupo_id: 'g1', alumno_id: 'a1', fecha: '2026-09-07', estado: 'A' },
-  { grupo_id: 'g1', alumno_id: 'a1', fecha: '2026-09-08', estado: 'R' },
+  { grupo_id: 'g1', alumno_id: 'a1', fecha: '2026-09-08', estado: 'R', nota: 'Justificante entregado' },
   { grupo_id: 'g1', alumno_id: 'a2', fecha: '2026-09-07', estado: 'F' },
   { grupo_id: 'g1', alumno_id: 'a2', fecha: '2026-09-08', estado: 'J' },
   { grupo_id: 'gX', alumno_id: 'a9', fecha: '2026-09-08', estado: 'A' },
@@ -63,6 +64,14 @@ test('arma los grupos en orden y descarta lo que no les pertenece', () => {
   assert.deepEqual(g.alumnos.map(a => a.nombre), ['Aguilar, Sofía', 'Bautista, Diego']);
   assert.equal(g.alumnos.length, 2, 'el alumno de otro grupo no debe colarse');
   assert.deepEqual(g.registros['2026-09-08'], { a1: 'R', a2: 'J' });
+});
+
+test('las notas de alumno y de marca se arman por separado', () => {
+  const [g] = armarGrupos(grupos, alumnos, asistencias);
+  assert.equal(g.alumnos.find(a => a.id === 'a1').notas, 'Alergia a maní');
+  assert.equal(g.alumnos.find(a => a.id === 'a2').notas, '', 'sin nota no debe ser undefined');
+  assert.equal(notaDelDia(g, '2026-09-08', 'a1'), 'Justificante entregado');
+  assert.equal(notaDelDia(g, '2026-09-07', 'a1'), '', 'ese día no tiene nota');
 });
 
 test('el reporte cuenta retardo como asistencia y justificada aparte', () => {
@@ -101,15 +110,60 @@ test('el CSV del grupo trae una columna por día', () => {
   assert.equal(primera.at(-1), '100%');
 });
 
-test('el CSV completo pone un renglón por marca', () => {
+test('el CSV completo pone un renglón por marca, con su nota si tiene', () => {
   const [g] = armarGrupos(grupos, alumnos, asistencias);
   const lineas = csvDeTodo([g]);
   assert.equal(lineas.length, 5, 'encabezado + 4 marcas');
-  assert.deepEqual(lineas[1], ['3° B', 'Aguilar, Sofía', '2026-09-07', 'A', 'Asistencia']);
+  assert.deepEqual(lineas[1], ['3° B', 'Aguilar, Sofía', '2026-09-07', 'A', 'Asistencia', '']);
+  assert.deepEqual(lineas[3], ['3° B', 'Aguilar, Sofía', '2026-09-08', 'R', 'Retardo', 'Justificante entregado']);
 });
 
 test('un respaldo inválido se rechaza en vez de romper la pantalla', () => {
   assert.throws(() => leerRespaldo('{"algo":1}'));
   assert.throws(() => leerRespaldo('no es json'));
   assert.deepEqual(leerRespaldo('{"grupos":[]}').grupos, []);
+});
+
+test('el respaldo conserva los grupos armados tal cual, notas incluidas', () => {
+  const [g] = armarGrupos(grupos, alumnos, asistencias);
+  const copia = armarRespaldo([g]);
+  assert.equal(copia.grupos[0].alumnos[0].notas, 'Alergia a maní');
+  assert.equal(copia.grupos[0].notasDia['2026-09-08'].a1, 'Justificante entregado');
+});
+
+test('el reporte se puede acotar a un rango de fechas', () => {
+  const [g] = armarGrupos(grupos, alumnos, asistencias);
+  const [sofia] = resumen(g, { desde: '2026-09-08', hasta: '2026-09-08' });
+  assert.equal(sofia.reg, 1, 'solo cuenta el día dentro del rango');
+  assert.equal(sofia.R, 1);
+  assert.equal(sofia.A, 0);
+});
+
+test('la tendencia agrupa los días registrados por semana o por mes', () => {
+  const [g] = armarGrupos(grupos, alumnos, asistencias);
+  // 2026-09-07 y 2026-09-08 caen en la misma semana (lunes 7).
+  const semanas = serieAsistencia(g, 'semana');
+  assert.equal(semanas.length, 1);
+  assert.equal(semanas[0].etiqueta, '2026-09-07');
+  assert.equal(semanas[0].pct, 50, '2 de 4 marcas son asistencia o retardo');
+
+  const meses = serieAsistencia(g, 'mes');
+  assert.deepEqual(meses, [{ etiqueta: '2026-09', pct: 50 }]);
+});
+
+test('detecta el día hábil anterior sin marcar, saltando el fin de semana', () => {
+  const [g] = armarGrupos(grupos, alumnos, asistencias);
+  // Lunes 2026-09-14: el día hábil anterior es el viernes 2026-09-11, sin marcas.
+  assert.equal(diaHabilAnteriorSinMarcar(g, '2026-09-14'), '2026-09-11');
+  // Martes 2026-09-08: el día hábil anterior (2026-09-07) sí tiene marcas.
+  assert.equal(diaHabilAnteriorSinMarcar(g, '2026-09-08'), null);
+});
+
+test('normaliza acentos y mayúsculas para la búsqueda', () => {
+  assert.equal(normaliza('Aguilar, Sofía'), 'aguilar, sofia');
+  assert.equal(normaliza('ÑOÑO'), 'nono');
+});
+
+test('fecha corta para las etiquetas de la gráfica', () => {
+  assert.equal(fechaCorta('2026-09-08'), '8 sep');
 });
